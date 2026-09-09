@@ -1,0 +1,17 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: light;
+}
+
+body {
+  background: var(--canvas, #f6f7f5);
+  color: #0f1e1a;
+}
+
+/* Quiet, readable table rhythm used across dashboards */
+.cell {
+  @apply px-4 py-3 text-sm;
+}
