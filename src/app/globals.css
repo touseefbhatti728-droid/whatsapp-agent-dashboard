@@ -2,16 +2,34 @@
 @tailwind components;
 @tailwind utilities;
 
-:root {
-  color-scheme: light;
-}
+:root { color-scheme: light; }
 
 body {
-  background: var(--canvas, #f6f7f5);
-  color: #0f1e1a;
+  background-color: #f5f7f5;
+  color: #14231d;
+  -webkit-font-smoothing: antialiased;
 }
 
-/* Quiet, readable table rhythm used across dashboards */
-.cell {
-  @apply px-4 py-3 text-sm;
+@layer components {
+  .card {
+    @apply rounded-2xl border border-line bg-surface shadow-card;
+  }
+  .cell {
+    @apply px-5 py-4 text-sm;
+  }
+  .th {
+    @apply px-5 py-3 text-left text-xs font-semibold uppercase tracking-wide text-muted;
+  }
+  .pill {
+    @apply inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-medium;
+  }
+  .btn-brand {
+    @apply inline-flex items-center justify-center rounded-xl bg-brand px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-brand-dark focus:outline-none focus-visible:ring-2 focus-visible:ring-brand/40 disabled:opacity-60;
+  }
+  .field {
+    @apply w-full rounded-xl border border-line bg-white px-3.5 py-2.5 text-sm text-text outline-none transition focus:border-brand focus:ring-4 focus:ring-brand/10;
+  }
+  .navlink {
+    @apply flex items-center gap-3 rounded-xl px-3 py-2 text-sm font-medium transition;
+  }
 }

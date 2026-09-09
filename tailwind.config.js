@@ -4,17 +4,24 @@ module.exports = {
   theme: {
     extend: {
       colors: {
-        ink: "#0f1e1a",
-        canvas: "#f6f7f5",
-        line: "#e4e7e4",
-        muted: "#5b6b64",
+        ink: "#0e211a",
+        "ink-soft": "#183a2e",
+        text: "#14231d",
+        canvas: "#f5f7f5",
+        surface: "#ffffff",
+        line: "#e6eae7",
+        muted: "#647169",
         brand: {
-          DEFAULT: "#12805c",
-          dark: "#0e6a4d",
+          DEFAULT: "#0f9d6a",
+          dark: "#0b7d54",
+          tint: "#e7f5ee",
         },
       },
       fontFamily: {
-        sans: ["ui-sans-serif", "system-ui", "-apple-system", "Segoe UI", "Roboto", "Helvetica", "Arial", "sans-serif"],
+        sans: ['"Plus Jakarta Sans"', "ui-sans-serif", "system-ui", "-apple-system", "Segoe UI", "Roboto", "sans-serif"],
+      },
+      boxShadow: {
+        card: "0 1px 2px rgba(14,33,26,0.04), 0 8px 24px -12px rgba(14,33,26,0.10)",
       },
     },
   },
