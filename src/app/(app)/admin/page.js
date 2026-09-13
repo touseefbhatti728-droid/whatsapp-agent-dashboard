@@ -1,103 +1,86 @@
 import { redirect } from "next/navigation";
+import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 
-function initials(name) {
-  if (!name) return "•";
-  return name.trim().split(/\s+/).slice(0, 2).map((w) => w[0]?.toUpperCase()).join("");
+function when(ts) {
+  if (!ts) return "—";
+  return new Date(ts).toLocaleString(undefined, { day: "numeric", month: "short", hour: "numeric", minute: "2-digit" });
 }
+function initials(n) { return n ? n.trim().split(/\s+/).slice(0,2).map(w=>w[0]?.toUpperCase()).join("") : "•"; }
 
-export default async function AdminPage() {
+export default async function AdminOverview() {
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("is_admin")
-    .eq("id", user.id)
-    .single();
-
+  const { data: { user } } = await supabase.auth.getUser();
+  const { data: profile } = await supabase.from("profiles").select("is_admin").eq("id", user.id).single();
   if (profile?.is_admin !== true) redirect("/dashboard");
 
   const { data: businesses } = await supabase
-    .from("businesses")
-    .select("id, name, location, whatsapp_number, owner_email, created_at")
-    .order("created_at", { ascending: false });
-
+    .from("businesses").select("id, name, status, whatsapp_number, created_at").order("created_at", { ascending: false });
   const { data: bookings } = await supabase
-    .from("bookings")
-    .select("id, business_id, customer_name, service, start_time")
-    .order("start_time", { ascending: false })
-    .limit(100);
+    .from("bookings").select("id, ref_no, customer_name, service, start_time, business_id").order("created_at", { ascending: false }).limit(8);
 
-  const countFor = (id) => (bookings || []).filter((b) => b.business_id === id).length;
-  const weekCount = (bookings || []).filter(
-    (b) => new Date(b.start_time) >= new Date(Date.now() - 7 * 24 * 60 * 60 * 1000)
-  ).length;
+  const total = businesses?.length || 0;
+  const suspended = (businesses || []).filter(b => b.status === "suspended").length;
+  const active = total - suspended;
+  const { count: bookingCount } = await supabase.from("bookings").select("*", { count: "exact", head: true });
+  const bName = (id) => (businesses || []).find(b => b.id === id)?.name || "—";
 
   return (
     <div className="space-y-8">
       <div>
-        <h1 className="text-2xl font-semibold tracking-tight text-text">All clients</h1>
-        <p className="mt-1 text-sm text-muted">Every business on the platform and their booking activity.</p>
+        <h1 className="text-2xl font-semibold tracking-tight text-text">Overview</h1>
+        <p className="mt-1 text-sm text-muted">A snapshot of your whole platform.</p>
       </div>
 
-      <section className="grid gap-4 sm:grid-cols-3">
-        <Stat label="Clients" value={businesses?.length || 0} />
-        <Stat label="Recent bookings" value={bookings?.length || 0} />
-        <Stat label="Active this week" value={weekCount} accent />
+      <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <Stat label="Total clients" value={total} />
+        <Stat label="Active" value={active} accent />
+        <Stat label="Suspended" value={suspended} />
+        <Stat label="Total bookings" value={bookingCount || 0} />
       </section>
 
       <section className="card overflow-hidden">
         <div className="flex items-center justify-between border-b border-line px-5 py-4">
-          <h2 className="text-sm font-semibold text-text">Clients</h2>
-          <span className="text-xs text-muted">{businesses?.length || 0} businesses</span>
+          <h2 className="text-sm font-semibold text-text">Recent bookings</h2>
+          <Link href="/admin/bookings" className="text-xs font-medium text-brand hover:text-brand-dark">View all →</Link>
         </div>
-
-        {(businesses?.length || 0) === 0 ? (
-          <div className="px-5 py-16 text-center">
-            <p className="text-sm font-medium text-text">No clients yet</p>
-            <p className="mt-1 text-sm text-muted">New businesses will show up here once onboarded.</p>
-          </div>
+        {(bookings?.length || 0) === 0 ? (
+          <div className="px-5 py-14 text-center text-sm text-muted">No bookings yet.</div>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead>
-                <tr className="border-b border-line">
-                  <th className="th">Business</th>
-                  <th className="th">Owner</th>
-                  <th className="th">WhatsApp</th>
-                  <th className="th">Bookings</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-line">
-                {businesses.map((b) => (
-                  <tr key={b.id} className="transition hover:bg-canvas/60">
-                    <td className="cell">
-                      <div className="flex items-center gap-3">
-                        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-brand text-xs font-semibold text-white">
-                          {initials(b.name)}
-                        </div>
-                        <div>
-                          <p className="font-medium text-text">{b.name || "—"}</p>
-                          <p className="text-xs text-muted">{b.location || ""}</p>
-                        </div>
-                      </div>
-                    </td>
-                    <td className="cell text-muted">{b.owner_email || "—"}</td>
-                    <td className="cell text-muted">{b.whatsapp_number || "—"}</td>
-                    <td className="cell">
-                      <span className="rounded-md bg-canvas px-2 py-1 text-xs font-semibold text-text">
-                        {countFor(b.id)}
-                      </span>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+          <div className="divide-y divide-line">
+            {bookings.map(b => (
+              <div key={b.id} className="flex items-center gap-3 px-5 py-3.5">
+                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-ink text-xs font-semibold text-white">{initials(b.customer_name)}</div>
+                <div className="min-w-0 flex-1">
+                  <p className="truncate text-sm font-medium text-text">{b.customer_name || "Unknown"} · <span className="text-muted">{b.service || "—"}</span></p>
+                  <p className="truncate text-xs text-muted">{bName(b.business_id)} · {when(b.start_time)}</p>
+                </div>
+                <span className="rounded-md bg-brand-tint px-2 py-1 text-xs font-semibold text-brand-dark">{b.ref_no ? `BK-${b.ref_no}` : "—"}</span>
+              </div>
+            ))}
           </div>
         )}
+      </section>
+
+      <section className="card overflow-hidden">
+        <div className="flex items-center justify-between border-b border-line px-5 py-4">
+          <h2 className="text-sm font-semibold text-text">Newest clients</h2>
+          <Link href="/admin/clients" className="text-xs font-medium text-brand hover:text-brand-dark">Manage →</Link>
+        </div>
+        <div className="divide-y divide-line">
+          {(businesses || []).slice(0, 5).map(b => (
+            <Link key={b.id} href={`/admin/clients/${b.id}`} className="flex items-center gap-3 px-5 py-3.5 transition hover:bg-canvas/60">
+              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-brand text-xs font-semibold text-white">{initials(b.name)}</div>
+              <div className="min-w-0 flex-1">
+                <p className="truncate text-sm font-medium text-text">{b.name || "—"}</p>
+                <p className="truncate text-xs text-muted">Joined {when(b.created_at)}</p>
+              </div>
+              {b.status === "suspended"
+                ? <span className="pill bg-red-50 text-red-600">Suspended</span>
+                : <span className="pill bg-brand-tint text-brand-dark">Active</span>}
+            </Link>
+          ))}
+        </div>
       </section>
     </div>
   );

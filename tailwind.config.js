@@ -12,9 +12,9 @@ module.exports = {
         line: "#e6eae7",
         muted: "#647169",
         brand: {
-          DEFAULT: "#0f9d6a",
-          dark: "#0b7d54",
-          tint: "#e7f5ee",
+          DEFAULT: "rgb(var(--brand-rgb) / <alpha-value>)",
+          dark: "rgb(var(--brand-dark-rgb) / <alpha-value>)",
+          tint: "rgb(var(--brand-tint-rgb) / <alpha-value>)",
         },
       },
       fontFamily: {
