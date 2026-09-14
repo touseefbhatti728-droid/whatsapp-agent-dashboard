@@ -46,6 +46,7 @@ export default async function AppLayout({ children }) {
 
           <nav className="mt-7 space-y-1">
             <NavItem href="/dashboard" label="My bookings" icon={IcCalendar} />
+            <NavItem href="/calendar" label="Calendar" icon={IcCalendar} />
             {showChat && <NavItem href="/conversations" label="Conversations" icon={IcChat} />}
             <NavItem href="/settings" label="Settings" icon={IcCog} />
             <NavItem href="/billing" label="Billing" icon={IcCard} />
@@ -58,6 +59,7 @@ export default async function AppLayout({ children }) {
                 <NavItem href="/admin" label="Overview" icon={IcGrid} exact />
                 <NavItem href="/admin/clients" label="Clients" icon={IcUsers} />
                 <NavItem href="/admin/bookings" label="All bookings" icon={IcList} />
+                <NavItem href="/admin/calendar" label="Calendar" icon={IcCalendar} />
                 <NavItem href="/admin/plans" label="Plans" icon={IcCard} />
                 <NavItem href="/admin/assistant" label="Assistant" icon={IcSpark} />
                 <NavItem href="/admin/branding" label="Branding" icon={IcPaint} />
