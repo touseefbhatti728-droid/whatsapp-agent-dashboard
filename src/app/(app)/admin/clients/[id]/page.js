@@ -2,6 +2,7 @@ import { redirect, notFound } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { setBusinessStatus } from "../../actions";
+import SubscriptionForm from "@/components/SubscriptionForm";
 
 function when(ts) {
   if (!ts) return "—";
@@ -22,6 +23,8 @@ export default async function ClientDetail({ params }) {
   const { data: bookings } = await supabase
     .from("bookings").select("id, ref_no, customer_name, customer_phone, service, start_time")
     .eq("business_id", id).order("start_time", { ascending: false });
+
+  const { data: plans } = await supabase.from("plans").select("name, price, interval").order("sort");
 
   const suspended = b.status === "suspended";
   const now = new Date();
@@ -56,6 +59,12 @@ export default async function ClientDetail({ params }) {
           </button>
         </form>
       </div>
+
+      {/* Subscription */}
+      <section className="card p-6">
+        <h2 className="mb-4 text-sm font-semibold text-text">Subscription</h2>
+        <SubscriptionForm businessId={b.id} plans={plans || []} current={{ plan: b.plan, sub_status: b.sub_status, renews_at: b.renews_at }} />
+      </section>
 
       {/* Info grid */}
       <section className="grid gap-4 sm:grid-cols-2">

@@ -4,8 +4,8 @@ module.exports = {
   theme: {
     extend: {
       colors: {
-        ink: "#0e211a",
-        "ink-soft": "#183a2e",
+        ink: "#17162b",
+        "ink-soft": "#252142",
         text: "#14231d",
         canvas: "#f5f7f5",
         surface: "#ffffff",

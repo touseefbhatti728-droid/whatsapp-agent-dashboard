@@ -36,6 +36,17 @@ export async function POST(req) {
     return NextResponse.json({ ok: true, text: `Done — ${clientName} is now ${status}.` });
   }
 
+  if (action === "set_subscription") {
+    const STATUSES = ["trialing", "active", "past_due", "cancelled"];
+    const clean = {};
+    if (typeof changes?.plan === "string" && changes.plan) clean.plan = changes.plan;
+    if (STATUSES.includes(changes?.sub_status)) clean.sub_status = changes.sub_status;
+    if (Object.keys(clean).length === 0) return NextResponse.json({ ok: false, text: "No valid subscription changes." });
+    const { error } = await supabase.from("businesses").update(clean).eq("id", businessId);
+    if (error) return NextResponse.json({ ok: false, text: "Could not update: " + error.message });
+    return NextResponse.json({ ok: true, text: `Done — updated subscription for ${clientName}.` });
+  }
+
   if (action === "update_info") {
     const clean = {};
     Object.entries(changes || {}).forEach(([k, v]) => { if (ALLOWED.includes(k)) clean[k] = v; });

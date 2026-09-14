@@ -10,6 +10,28 @@ export default async function ConversationsPage() {
   const { data: profile } = await supabase.from("profiles").select("is_admin").eq("id", user.id).single();
   const isAdmin = profile?.is_admin === true;
 
+  if (!isAdmin) {
+    const { data: myBiz } = await supabase.from("businesses").select("plan").eq("owner_id", user.id).order("created_at", { ascending: true }).limit(1).maybeSingle();
+    if (myBiz) {
+      const { data: pl } = await supabase.from("plans").select("chat_history").eq("name", myBiz.plan).maybeSingle();
+      if (pl?.chat_history === false) {
+        return (
+          <div className="space-y-6">
+            <div>
+              <h1 className="page-title">Conversations</h1>
+              <p className="page-sub">Read every chat your AI receptionist has with customers.</p>
+            </div>
+            <div className="card p-10 text-center">
+              <p className="text-sm font-medium text-text">Conversation history is a Pro feature</p>
+              <p className="mx-auto mt-1 max-w-sm text-sm text-muted">Upgrade your plan to read the full chat history between your AI receptionist and your customers.</p>
+              <a href="/billing" className="btn-brand mt-5 inline-flex">View plans</a>
+            </div>
+          </div>
+        );
+      }
+    }
+  }
+
   const { data: businesses } = await supabase.from("businesses").select("id, name");
   const nameById = {};
   (businesses || []).forEach((b) => { nameById[b.id] = b.name; });

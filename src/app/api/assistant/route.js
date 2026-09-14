@@ -9,7 +9,7 @@ const tools = [
   { name: "list_clients", description: "List all client businesses with status, whatsapp number, and booking counts.", input_schema: { type: "object", properties: {} } },
   { name: "list_bookings", description: "List bookings. Optionally filter by client name and by time.", input_schema: { type: "object", properties: { client_name: { type: "string" }, when: { type: "string", enum: ["all", "upcoming", "past"] } } } },
   { name: "get_conversations", description: "Get recent WhatsApp chat messages for one client (by business name).", input_schema: { type: "object", properties: { client_name: { type: "string" } }, required: ["client_name"] } },
-  { name: "propose_action", description: "Propose a data-changing action for the human to confirm. NEVER assume the action is done — the human must confirm it. Use for suspending a client, activating a client, or updating a client's business info.", input_schema: { type: "object", properties: { action: { type: "string", enum: ["suspend", "activate", "update_info", "update_branding"] }, client_name: { type: "string", description: "Business name for suspend/activate/update_info. Omit for update_branding." }, changes: { type: "object", description: "For update_info: client fields (hours, services, faq, location, name, booking, calendar_id). For update_branding: { app_name, brand_color } where brand_color is a hex like #2563eb." }, summary: { type: "string", description: "One-line plain description of what will happen." } }, required: ["action", "summary"] } },
+  { name: "propose_action", description: "Propose a data-changing action for the human to confirm. NEVER assume the action is done — the human must confirm it. Use for suspending a client, activating a client, or updating a client's business info.", input_schema: { type: "object", properties: { action: { type: "string", enum: ["suspend", "activate", "update_info", "update_branding", "set_subscription"] }, client_name: { type: "string", description: "Business name for suspend/activate/update_info. Omit for update_branding." }, changes: { type: "object", description: "For update_info: client fields (hours, services, faq, location, name, booking, calendar_id). For update_branding: { app_name, brand_color }. For set_subscription: { plan, sub_status } where sub_status is trialing/active/past_due/cancelled." }, summary: { type: "string", description: "One-line plain description of what will happen." } }, required: ["action", "summary"] } },
 ];
 
 const SYSTEM = `You are the admin assistant inside a WhatsApp booking SaaS dashboard. You help the platform owner (an admin) understand their data and make changes.
@@ -17,7 +17,7 @@ const SYSTEM = `You are the admin assistant inside a WhatsApp booking SaaS dashb
 Rules:
 - To answer questions about clients, bookings, or conversations, call the read tools and then answer clearly and concisely.
 - For anything that CHANGES data (suspend/activate a client, edit a client's info, or change the app branding/colour/name), you MUST call propose_action. Never claim an action is done — the human confirms it separately.
-- For branding colour changes, provide brand_color as a 6-digit hex (e.g. blue = #2563eb, purple = #7c3aed, orange = #ea580c).
+- For branding colour changes, provide brand_color as a 6-digit hex (e.g. blue = #2563eb, purple = #7c3aed, orange = #ea580c).\n- To change a plan or billing status, use action set_subscription with client_name and changes { plan, sub_status }.
 - Keep answers short, clear and friendly. Write PLAIN TEXT ONLY — never use markdown, asterisks (**), hash symbols, or bullet characters. For lists, use short simple lines. When you cannot do something, say so briefly without markdown.
 - If a client name is unclear or matches several, ask which one.`;
 
@@ -46,14 +46,19 @@ async function runReadTool(supabase, name, input) {
     const { count: bookings } = await supabase.from("bookings").select("*", { count: "exact", head: true });
     const weekAgo = new Date(Date.now() - 7 * 864e5).toISOString();
     const { count: week } = await supabase.from("bookings").select("*", { count: "exact", head: true }).gte("created_at", weekAgo);
-    return { total_clients: total, active: total - suspended, suspended, total_bookings: bookings || 0, bookings_last_7_days: week || 0 };
+    const { data: subRows } = await supabase.from("businesses").select("plan, sub_status");
+    const { data: planRows } = await supabase.from("plans").select("name, price");
+    const priceOf = {}; (planRows || []).forEach((p) => { priceOf[p.name] = Number(p.price) || 0; });
+    const active_subscriptions = (subRows || []).filter((b) => b.sub_status === "active").length;
+    const estimated_mrr = (subRows || []).filter((b) => b.sub_status === "active").reduce((s2, b) => s2 + (priceOf[b.plan] || 0), 0);
+    return { total_clients: total, active: total - suspended, suspended, total_bookings: bookings || 0, bookings_last_7_days: week || 0, active_subscriptions, estimated_mrr };
   }
   if (name === "list_clients") {
-    const { data: bs } = await supabase.from("businesses").select("id, name, status, whatsapp_number, owner_email");
+    const { data: bs } = await supabase.from("businesses").select("id, name, status, plan, sub_status, whatsapp_number, owner_email");
     const { data: bk } = await supabase.from("bookings").select("business_id");
     const counts = {};
     (bk || []).forEach((b) => { counts[b.business_id] = (counts[b.business_id] || 0) + 1; });
-    return (bs || []).map((b) => ({ name: b.name, status: b.status, whatsapp: b.whatsapp_number, owner: b.owner_email, bookings: counts[b.id] || 0 }));
+    return (bs || []).map((b) => ({ name: b.name, status: b.status, plan: b.plan, subscription: b.sub_status, whatsapp: b.whatsapp_number, owner: b.owner_email, bookings: counts[b.id] || 0 }));
   }
   if (name === "list_bookings") {
     let bizId = null;

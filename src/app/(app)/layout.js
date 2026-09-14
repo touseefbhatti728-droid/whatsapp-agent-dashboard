@@ -12,6 +12,7 @@ const IcGrid = (<svg {...S}><rect x="3" y="3" width="7" height="7" rx="1.5"/><re
 const IcUsers = (<svg {...S}><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>);
 const IcList = (<svg {...S}><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/></svg>);
 const IcSpark = (<svg {...S}><path d="M12 3l1.9 4.8L18.5 9l-4.6 1.2L12 15l-1.9-4.8L5.5 9l4.6-1.2z"/><path d="M18 15l.7 1.8 1.8.7-1.8.7L18 20l-.7-1.8-1.8-.7 1.8-.7z"/></svg>);
+const IcCard = (<svg {...S}><rect x="2" y="5" width="20" height="14" rx="2.5"/><path d="M2 10h20"/></svg>);
 const IcPaint = (<svg {...S}><path d="M12 2a9 9 0 0 0 0 18 2 2 0 0 0 2-2v-1a2 2 0 0 1 2-2h1a4 4 0 0 0 4-4 9 9 0 0 0-9-9z"/><circle cx="7.5" cy="10.5" r="1"/><circle cx="12" cy="7.5" r="1"/><circle cx="16.5" cy="10.5" r="1"/></svg>);
 
 export default async function AppLayout({ children }) {
@@ -23,6 +24,14 @@ export default async function AppLayout({ children }) {
   const isAdmin = profile?.is_admin === true;
   const branding = await getBranding();
   const appName = branding.app_name;
+  let showChat = true;
+  if (!isAdmin) {
+    const { data: myBiz } = await supabase.from("businesses").select("plan").eq("owner_id", user.id).order("created_at", { ascending: true }).limit(1).maybeSingle();
+    if (myBiz) {
+      const { data: pl } = await supabase.from("plans").select("chat_history").eq("name", myBiz.plan).maybeSingle();
+      showChat = pl?.chat_history !== false;
+    }
+  }
   const initial = (user.email || "?").charAt(0).toUpperCase();
 
   return (
@@ -35,19 +44,21 @@ export default async function AppLayout({ children }) {
             <span className="truncate font-bold tracking-tight text-white">{appName}</span>
           </div>
 
-          <nav className="mt-7 space-y-0.5">
+          <nav className="mt-7 space-y-1">
             <NavItem href="/dashboard" label="My bookings" icon={IcCalendar} />
-            <NavItem href="/conversations" label="Conversations" icon={IcChat} />
+            {showChat && <NavItem href="/conversations" label="Conversations" icon={IcChat} />}
             <NavItem href="/settings" label="Settings" icon={IcCog} />
+            <NavItem href="/billing" label="Billing" icon={IcCard} />
           </nav>
 
           {isAdmin && (
             <div className="mt-7">
-              <p className="px-3 pb-2 text-[10.5px] font-semibold uppercase tracking-[0.12em] text-white/30">Admin</p>
-              <nav className="space-y-0.5">
+              <p className="px-3 pb-2 text-[11px] font-semibold uppercase tracking-[0.16em] text-white/40">Admin</p>
+              <nav className="space-y-1">
                 <NavItem href="/admin" label="Overview" icon={IcGrid} exact />
                 <NavItem href="/admin/clients" label="Clients" icon={IcUsers} />
                 <NavItem href="/admin/bookings" label="All bookings" icon={IcList} />
+                <NavItem href="/admin/plans" label="Plans" icon={IcCard} />
                 <NavItem href="/admin/assistant" label="Assistant" icon={IcSpark} />
                 <NavItem href="/admin/branding" label="Branding" icon={IcPaint} />
               </nav>
@@ -60,7 +71,7 @@ export default async function AppLayout({ children }) {
             <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-brand text-xs font-semibold text-white">{initial}</div>
             <div className="min-w-0">
               <p className="truncate text-[12.5px] font-medium text-white">{user.email}</p>
-              <p className="text-[11px] text-white/40">{isAdmin ? "Admin" : "Owner"}</p>
+              <p className="text-[11px] text-white/45">{isAdmin ? "Admin" : "Owner"}</p>
             </div>
           </div>
           <SignOutButton />

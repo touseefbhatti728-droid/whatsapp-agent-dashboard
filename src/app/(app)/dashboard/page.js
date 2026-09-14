@@ -121,9 +121,9 @@ export default async function DashboardPage() {
 
 function Stat({ label, value, accent }) {
   return (
-    <div className="card px-5 py-5">
-      <div className={`text-3xl font-semibold tracking-tight ${accent ? "text-brand" : "text-text"}`}>{value}</div>
-      <div className="mt-1 text-sm text-muted">{label}</div>
+    <div className="stat">
+      <div className="text-[13px] font-medium text-muted">{label}</div>
+      <div className={`mt-2 text-[30px] font-bold leading-none tracking-tight ${accent ? "text-brand" : "text-text"}`}>{value}</div>
     </div>
   );
 }

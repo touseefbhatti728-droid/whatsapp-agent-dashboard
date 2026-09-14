@@ -23,6 +23,12 @@ export default async function AdminOverview() {
   const suspended = (businesses || []).filter(b => b.status === "suspended").length;
   const active = total - suspended;
   const { count: bookingCount } = await supabase.from("bookings").select("*", { count: "exact", head: true });
+  const { data: subRows } = await supabase.from("businesses").select("plan, sub_status");
+  const { data: planRows } = await supabase.from("plans").select("name, price");
+  const priceOf = {};
+  (planRows || []).forEach((p) => { priceOf[p.name] = Number(p.price) || 0; });
+  const activeSubs = (subRows || []).filter((b) => b.sub_status === "active").length;
+  const mrr = (subRows || []).filter((b) => b.sub_status === "active").reduce((sum, b) => sum + (priceOf[b.plan] || 0), 0);
   const bName = (id) => (businesses || []).find(b => b.id === id)?.name || "—";
 
   return (
@@ -32,11 +38,13 @@ export default async function AdminOverview() {
         <p className="mt-1 text-sm text-muted">A snapshot of your whole platform.</p>
       </div>
 
-      <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         <Stat label="Total clients" value={total} />
         <Stat label="Active" value={active} accent />
         <Stat label="Suspended" value={suspended} />
         <Stat label="Total bookings" value={bookingCount || 0} />
+        <Stat label="Active subscriptions" value={activeSubs} />
+        <Stat label="Est. MRR" value={`$${mrr}`} accent />
       </section>
 
       <section className="card overflow-hidden">
@@ -88,9 +96,9 @@ export default async function AdminOverview() {
 
 function Stat({ label, value, accent }) {
   return (
-    <div className="card px-5 py-5">
-      <div className={`text-3xl font-semibold tracking-tight ${accent ? "text-brand" : "text-text"}`}>{value}</div>
-      <div className="mt-1 text-sm text-muted">{label}</div>
+    <div className="stat">
+      <div className="text-[13px] font-medium text-muted">{label}</div>
+      <div className={`mt-2 text-[30px] font-bold leading-none tracking-tight ${accent ? "text-brand" : "text-text"}`}>{value}</div>
     </div>
   );
 }
