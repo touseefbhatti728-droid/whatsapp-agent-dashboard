@@ -45,6 +45,7 @@ export default function SignupForm({ appName = "Resora AI" }) {
 
   return (
     <main className="grid min-h-screen lg:grid-cols-2">
+      {/* LEFT — form */}
       <div className="flex items-center justify-center px-6 py-12">
         <div className="w-full max-w-md">
           <div className="mb-7 flex items-center gap-2.5">
@@ -75,6 +76,7 @@ export default function SignupForm({ appName = "Resora AI" }) {
         </div>
       </div>
 
+      {/* RIGHT — dark marketing panel */}
       <div className="relative hidden overflow-hidden bg-ink lg:flex lg:flex-col lg:justify-center lg:px-14">
         <div className="pointer-events-none absolute -right-24 -top-24 h-80 w-80 rounded-full" style={{ background: "radial-gradient(circle, rgb(var(--brand-rgb) / 0.35), transparent 70%)" }} />
         <div className="pointer-events-none absolute -bottom-28 -left-16 h-80 w-80 rounded-full" style={{ background: "radial-gradient(circle, rgba(124,92,252,0.22), transparent 70%)" }} />

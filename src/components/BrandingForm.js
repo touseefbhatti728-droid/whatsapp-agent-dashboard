@@ -32,7 +32,7 @@ export default function BrandingForm({ initial }) {
         <div>
           <label className="mb-1.5 block text-sm font-medium text-text">Brand colour</label>
           <div className="flex items-center gap-3">
-            <input type="color" value={color} onChange={(e) => { setColor(e.target.value); setSaved(false); }} className="h-10 w-14 cursor-pointer rounded-lg border border-line bg-white p-1" />
+            <input type="color" value={color} onChange={(e) => { setColor(e.target.value); setSaved(false); }} className="h-10 w-14 cursor-pointer rounded-lg border border-line bg-surface p-1" />
             <input value={color} onChange={(e) => { setColor(e.target.value); setSaved(false); }} className="field w-32 font-mono" />
           </div>
           <div className="mt-3 flex flex-wrap gap-2">

@@ -34,6 +34,7 @@ export default function LoginForm({ appName = "Resora AI" }) {
 
   return (
     <main className="grid min-h-screen lg:grid-cols-2">
+      {/* LEFT — form */}
       <div className="flex items-center justify-center px-6 py-14">
         <div className="w-full max-w-sm">
           <div className="mb-9 flex items-center gap-2.5">
@@ -61,6 +62,7 @@ export default function LoginForm({ appName = "Resora AI" }) {
         </div>
       </div>
 
+      {/* RIGHT — dark marketing panel */}
       <div className="relative hidden overflow-hidden bg-ink lg:flex lg:flex-col lg:justify-center lg:px-14">
         <div className="pointer-events-none absolute -right-24 -top-24 h-80 w-80 rounded-full" style={{ background: "radial-gradient(circle, rgb(var(--brand-rgb) / 0.35), transparent 70%)" }} />
         <div className="pointer-events-none absolute -bottom-28 -left-16 h-80 w-80 rounded-full" style={{ background: "radial-gradient(circle, rgba(124,92,252,0.22), transparent 70%)" }} />
@@ -72,11 +74,13 @@ export default function LoginForm({ appName = "Resora AI" }) {
           <p className="mt-4 max-w-md text-sm leading-relaxed text-white/60">
             An AI receptionist that chats, books, and never sleeps — everything your business needs on WhatsApp.
           </p>
+
           <ul className="mt-8 space-y-3.5">
             {BULLETS.map((b) => (
               <li key={b} className="flex items-center gap-3 text-[15px] text-white/85">{Tick}{b}</li>
             ))}
           </ul>
+
           <div className="mt-10 inline-flex items-center gap-3 rounded-xl border border-white/10 bg-white/5 px-4 py-3">
             <span className="text-base tracking-tight text-yellow-400">★★★★★</span>
             <span className="text-sm text-white/70">Built for salons, clinics & service businesses</span>

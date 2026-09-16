@@ -92,7 +92,7 @@ export default function AssistantChat() {
             </p>
             <div className="mt-6 flex flex-wrap justify-center gap-2">
               {SUGGESTIONS.map((s) => (
-                <button key={s} onClick={() => send(s)} className="rounded-full border border-line bg-white px-3.5 py-1.5 text-[13px] text-text transition hover:border-brand/40 hover:bg-brand-tint/40">{s}</button>
+                <button key={s} onClick={() => send(s)} className="rounded-full border border-line bg-surface px-3.5 py-1.5 text-[13px] text-text transition hover:border-brand/40 hover:bg-brand-tint/40">{s}</button>
               ))}
             </div>
           </div>
@@ -102,7 +102,7 @@ export default function AssistantChat() {
           if (m.role === "user")
             return <div key={i} className="flex justify-end"><div className="max-w-[78%] rounded-2xl rounded-tr-md bg-brand px-4 py-2.5 text-sm leading-relaxed text-white">{m.text}</div></div>;
           if (m.role === "assistant")
-            return <div key={i} className="flex justify-start"><div className="max-w-[82%] whitespace-pre-wrap rounded-2xl rounded-tl-md border border-line bg-white px-4 py-2.5 text-sm leading-relaxed text-text">{m.text}</div></div>;
+            return <div key={i} className="flex justify-start"><div className="max-w-[82%] whitespace-pre-wrap rounded-2xl rounded-tl-md border border-line bg-surface px-4 py-2.5 text-sm leading-relaxed text-text">{m.text}</div></div>;
           const p = m.proposal;
           return (
             <div key={i} className="flex justify-start">
@@ -113,7 +113,7 @@ export default function AssistantChat() {
                 {m.status === "pending" ? (
                   <div className="mt-3.5 flex gap-2">
                     <button onClick={() => confirm(i)} disabled={loading} className="rounded-lg bg-brand px-3.5 py-1.5 text-sm font-semibold text-white transition hover:bg-brand-dark disabled:opacity-60">Confirm</button>
-                    <button onClick={() => cancel(i)} disabled={loading} className="rounded-lg border border-line bg-white px-3.5 py-1.5 text-sm font-medium text-text transition hover:bg-canvas">Cancel</button>
+                    <button onClick={() => cancel(i)} disabled={loading} className="rounded-lg border border-line bg-surface px-3.5 py-1.5 text-sm font-medium text-text transition hover:bg-canvas">Cancel</button>
                   </div>
                 ) : (
                   <p className={`mt-2.5 text-xs font-semibold ${m.status === "confirmed" ? "text-brand-dark" : "text-muted"}`}>{m.status === "confirmed" ? "✓ Confirmed" : "Cancelled"}</p>
@@ -125,7 +125,7 @@ export default function AssistantChat() {
 
         {loading && (
           <div className="flex justify-start">
-            <div className="flex items-center gap-1.5 rounded-2xl rounded-tl-md border border-line bg-white px-4 py-3">
+            <div className="flex items-center gap-1.5 rounded-2xl rounded-tl-md border border-line bg-surface px-4 py-3">
               <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-muted [animation-delay:-0.3s]" />
               <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-muted [animation-delay:-0.15s]" />
               <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-muted" />
@@ -136,7 +136,7 @@ export default function AssistantChat() {
       </div>
 
       <div className="border-t border-line bg-canvas/40 p-3">
-        <div className="flex items-center gap-2 rounded-2xl border border-line bg-white p-1.5 pl-4 transition focus-within:border-brand" style={{ boxShadow: "0 0 0 0 transparent" }}>
+        <div className="flex items-center gap-2 rounded-2xl border border-line bg-surface p-1.5 pl-4 transition focus-within:border-brand" style={{ boxShadow: "0 0 0 0 transparent" }}>
           <input value={input} onChange={(e) => setInput(e.target.value)} onKeyDown={(e) => e.key === "Enter" && send()} placeholder="Ask anything about your platform…" className="flex-1 bg-transparent text-sm text-text outline-none placeholder:text-muted/60" />
           <button onClick={() => send()} disabled={loading || !input.trim()} className="flex h-9 w-9 items-center justify-center rounded-xl bg-brand text-white transition hover:bg-brand-dark disabled:opacity-40">{SendIcon}</button>
         </div>

@@ -76,7 +76,7 @@ export default function ConversationsView({ conversations, showBusiness }) {
                 return (
                   <div key={i} className={`flex ${fromCustomer ? "justify-start" : "justify-end"}`}>
                     <div className={`max-w-[75%] rounded-2xl px-3.5 py-2 text-sm ${
-                      fromCustomer ? "rounded-tl-sm bg-white text-text shadow-sm" : "rounded-tr-sm bg-brand text-white"
+                      fromCustomer ? "rounded-tl-sm bg-surface text-text shadow-sm" : "rounded-tr-sm bg-brand text-white"
                     }`}>
                       <p className="whitespace-pre-wrap">{m.content}</p>
                       <p className={`mt-1 text-[10px] ${fromCustomer ? "text-muted" : "text-white/70"}`}>{timeShort(m.created_at)}</p>

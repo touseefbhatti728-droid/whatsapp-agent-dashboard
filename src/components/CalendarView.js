@@ -71,7 +71,7 @@ export default function CalendarView({ bookings, showBusiness }) {
                 {list.length > 0 && (
                   <span className={`mt-0.5 flex items-center gap-0.5`}>
                     {list.length <= 3
-                      ? list.map((_, k) => <span key={k} className={`h-1 w-1 rounded-full ${isSel ? "bg-white" : "bg-brand"}`} />)
+                      ? list.map((_, k) => <span key={k} className={`h-1 w-1 rounded-full ${isSel ? "bg-surface" : "bg-brand"}`} />)
                       : <span className={`text-[10px] font-semibold ${isSel ? "text-white" : "text-brand"}`}>{list.length}</span>}
                   </span>
                 )}

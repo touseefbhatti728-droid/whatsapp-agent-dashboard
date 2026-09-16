@@ -12,6 +12,7 @@ const IcGrid = (<svg {...S}><rect x="3" y="3" width="7" height="7" rx="1.5"/><re
 const IcUsers = (<svg {...S}><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>);
 const IcList = (<svg {...S}><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/></svg>);
 const IcSpark = (<svg {...S}><path d="M12 3l1.9 4.8L18.5 9l-4.6 1.2L12 15l-1.9-4.8L5.5 9l4.6-1.2z"/><path d="M18 15l.7 1.8 1.8.7-1.8.7L18 20l-.7-1.8-1.8-.7 1.8-.7z"/></svg>);
+const IcPlug = (<svg {...S}><path d="M9 2v6M15 2v6M7 8h10v3a5 5 0 0 1-10 0zM12 16v6"/></svg>);
 const IcCard = (<svg {...S}><rect x="2" y="5" width="20" height="14" rx="2.5"/><path d="M2 10h20"/></svg>);
 const IcPaint = (<svg {...S}><path d="M12 2a9 9 0 0 0 0 18 2 2 0 0 0 2-2v-1a2 2 0 0 1 2-2h1a4 4 0 0 0 4-4 9 9 0 0 0-9-9z"/><circle cx="7.5" cy="10.5" r="1"/><circle cx="12" cy="7.5" r="1"/><circle cx="16.5" cy="10.5" r="1"/></svg>);
 
@@ -49,6 +50,7 @@ export default async function AppLayout({ children }) {
             <NavItem href="/calendar" label="Calendar" icon={IcCalendar} />
             {showChat && <NavItem href="/conversations" label="Conversations" icon={IcChat} />}
             <NavItem href="/settings" label="Settings" icon={IcCog} />
+            <NavItem href="/integrations" label="Integrations" icon={IcPlug} />
             <NavItem href="/billing" label="Billing" icon={IcCard} />
           </nav>
 

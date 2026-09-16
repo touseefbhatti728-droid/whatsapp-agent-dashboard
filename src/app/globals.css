@@ -23,53 +23,40 @@ body {
 }
 
 @layer components {
-  /* Premium card: soft layered shadow, hairline border, generous radius */
   .card {
-    @apply rounded-[20px] border border-black/[0.055] bg-white;
-    box-shadow:
-      0 1px 2px rgba(17,24,39,0.04),
-      0 6px 16px -8px rgba(17,24,39,0.06),
-      0 24px 48px -28px rgba(17,24,39,0.14);
+    @apply rounded-[20px] border border-black/[0.055] bg-surface;
+    box-shadow: 0 1px 2px rgba(17,24,39,0.04), 0 6px 16px -8px rgba(17,24,39,0.06), 0 24px 48px -28px rgba(17,24,39,0.14);
   }
-
-  /* Stat card with a subtle hover lift */
   .stat {
-    @apply rounded-[20px] border border-black/[0.055] bg-white p-6 transition-all duration-200;
+    @apply rounded-[20px] border border-black/[0.055] bg-surface p-6 transition-all duration-200;
     box-shadow: 0 1px 2px rgba(17,24,39,0.04), 0 8px 20px -14px rgba(17,24,39,0.12);
   }
   .stat:hover {
     box-shadow: 0 2px 4px rgba(17,24,39,0.05), 0 16px 34px -18px rgba(17,24,39,0.20);
     transform: translateY(-2px);
   }
-
   .cell { @apply px-6 py-4 text-[13.5px]; }
   .th { @apply px-6 py-3.5 text-left text-[11px] font-semibold uppercase tracking-[0.07em] text-muted; }
   .pill { @apply inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium; }
-
   .btn-brand {
     @apply inline-flex items-center justify-center gap-2 rounded-xl bg-brand px-4 py-2.5 text-sm font-semibold text-white transition;
     box-shadow: 0 1px 2px rgba(16,36,30,0.12), 0 10px 22px -10px rgb(var(--brand-rgb) / 0.55);
   }
   .btn-brand:hover { @apply bg-brand-dark; transform: translateY(-1px); }
   .btn-brand:disabled { @apply opacity-60; box-shadow: none; transform: none; }
-
   .btn-ghost {
-    @apply inline-flex items-center justify-center gap-2 rounded-xl border border-line bg-white px-4 py-2.5 text-sm font-medium text-text transition hover:bg-canvas;
+    @apply inline-flex items-center justify-center gap-2 rounded-xl border border-line bg-surface px-4 py-2.5 text-sm font-medium text-text transition hover:bg-canvas;
   }
-
   .field {
-    @apply w-full rounded-xl border border-line bg-white px-3.5 py-2.5 text-sm text-text outline-none transition placeholder:text-muted/60;
+    @apply w-full rounded-xl border border-line bg-surface px-3.5 py-2.5 text-sm text-text outline-none transition placeholder:text-muted/60;
   }
   .field:focus { @apply border-brand; box-shadow: 0 0 0 4px rgb(var(--brand-rgb) / 0.12); }
-
   .navlink { @apply flex items-center gap-3 rounded-xl px-3 py-2.5 text-[14px] font-medium transition; }
-
   .logo-mark {
     @apply flex items-center justify-center rounded-xl font-bold text-white;
     background-image: linear-gradient(140deg, rgb(var(--brand-rgb)), rgb(var(--brand-dark-rgb)));
     box-shadow: 0 4px 12px -4px rgb(var(--brand-rgb) / 0.5);
   }
-
   .page-title { @apply text-[26px] font-bold tracking-tight text-text; }
   .page-sub { @apply mt-1.5 text-[15px] text-muted; }
 }
