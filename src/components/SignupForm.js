@@ -10,15 +10,15 @@ const Tick = (
 );
 const BULLETS = [
   "Free to set up — start in minutes",
-  "AI books appointments on WhatsApp 24/7",
+  "AI answers customers on WhatsApp 24/7",
   "Understands text, voice notes & photos",
   "Syncs with your Google Calendar",
   "Manage everything from one dashboard",
 ];
 
-export default function SignupForm({ appName = "Resora AI" }) {
+export default function SignupForm({ appName = "NextReply" }) {
   const router = useRouter();
-  const [f, setF] = useState({ name: "", email: "", password: "", location: "", hours: "", services: "" });
+  const [f, setF] = useState({ name: "", email: "", password: "" });
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
   const [loading, setLoading] = useState(false);
@@ -35,12 +35,12 @@ export default function SignupForm({ appName = "Resora AI" }) {
     if (signErr) { setLoading(false); return setError(signErr.message); }
     if (!data.session) { setLoading(false); setNotice("Account created! Please check your email to confirm, then sign in."); return; }
     const { error: bizErr } = await supabase.from("businesses").insert({
-      owner_id: data.user.id, name: f.name.trim(), location: f.location.trim() || null,
-      hours: f.hours.trim() || null, services: f.services.trim() || null, status: "active",
+      owner_id: data.user.id, name: f.name.trim(), status: "active",
     });
     setLoading(false);
     if (bizErr) { setError("Account made, but saving business failed: " + bizErr.message); return; }
-    router.push("/dashboard"); router.refresh();
+    // straight into the guided onboarding wizard
+    router.push("/onboarding"); router.refresh();
   }
 
   return (
@@ -54,17 +54,12 @@ export default function SignupForm({ appName = "Resora AI" }) {
           </div>
 
           <h1 className="text-2xl font-bold tracking-tight text-text">Create your account</h1>
-          <p className="mt-1.5 text-sm text-muted">Takes about a minute — no card needed.</p>
+          <p className="mt-1.5 text-sm text-muted">Takes about a minute — no card needed. You will set up your business next.</p>
 
           <div className="mt-7 space-y-4">
-            <Field label="Business name" value={f.name} onChange={(v) => set("name", v)} placeholder="Glow Beauty Salon" />
-            <div className="grid gap-4 sm:grid-cols-2">
-              <Field label="Email" type="email" value={f.email} onChange={(v) => set("email", v)} placeholder="you@business.com" />
-              <Field label="Password" type="password" value={f.password} onChange={(v) => set("password", v)} placeholder="At least 6 characters" />
-            </div>
-            <Field label="Location" value={f.location} onChange={(v) => set("location", v)} placeholder="Business Bay, Dubai" />
-            <Field label="Business hours" value={f.hours} onChange={(v) => set("hours", v)} placeholder="Mon–Sat, 10am–8pm" />
-            <Area label="Services" value={f.services} onChange={(v) => set("services", v)} placeholder="Haircut, hair color, facial…" />
+            <Field label="Business name" value={f.name} onChange={(v) => set("name", v)} placeholder="Your business name" />
+            <Field label="Email" type="email" value={f.email} onChange={(v) => set("email", v)} placeholder="you@business.com" />
+            <Field label="Password" type="password" value={f.password} onChange={(v) => set("password", v)} placeholder="At least 6 characters" />
 
             {error && <p className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-600">{error}</p>}
             {notice && <p className="rounded-lg bg-brand-tint px-3 py-2 text-sm text-brand-dark">{notice}</p>}
@@ -82,11 +77,11 @@ export default function SignupForm({ appName = "Resora AI" }) {
         <div className="pointer-events-none absolute -bottom-28 -left-16 h-80 w-80 rounded-full" style={{ background: "radial-gradient(circle, rgba(124,92,252,0.22), transparent 70%)" }} />
         <div className="relative">
           <h2 className="max-w-md text-[34px] font-bold leading-tight text-white">
-            Start taking bookings{" "}
+            Answer every customer{" "}
             <span style={{ backgroundImage: "linear-gradient(90deg,#a78bfa,#f0abfc,#7dd3fc)", WebkitBackgroundClip: "text", backgroundClip: "text", color: "transparent" }}>on autopilot</span>
           </h2>
           <p className="mt-4 max-w-md text-sm leading-relaxed text-white/60">
-            Join businesses letting AI handle their WhatsApp — replies, bookings, and reminders, all day.
+            Join businesses letting AI handle their WhatsApp — replies, questions, and bookings, all day.
           </p>
           <ul className="mt-8 space-y-3.5">
             {BULLETS.map((b) => (
@@ -95,7 +90,7 @@ export default function SignupForm({ appName = "Resora AI" }) {
           </ul>
           <div className="mt-10 inline-flex items-center gap-3 rounded-xl border border-white/10 bg-white/5 px-4 py-3">
             <span className="text-base tracking-tight text-yellow-400">★★★★★</span>
-            <span className="text-sm text-white/70">Built for salons, clinics & service businesses</span>
+            <span className="text-sm text-white/70">Built for service businesses on WhatsApp</span>
           </div>
         </div>
       </div>
@@ -108,14 +103,6 @@ function Field({ label, value, onChange, placeholder, type = "text" }) {
     <div>
       <label className="mb-1.5 block text-sm font-medium text-text">{label}</label>
       <input type={type} value={value} onChange={(e) => onChange(e.target.value)} placeholder={placeholder} className="field" />
-    </div>
-  );
-}
-function Area({ label, value, onChange, placeholder }) {
-  return (
-    <div>
-      <label className="mb-1.5 block text-sm font-medium text-text">{label}</label>
-      <textarea value={value} onChange={(e) => onChange(e.target.value)} placeholder={placeholder} rows={2} className="field resize-y" />
     </div>
   );
 }
