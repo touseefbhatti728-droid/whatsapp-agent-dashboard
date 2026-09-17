@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import SignOutButton from "@/components/SignOutButton";
 import NavItem from "@/components/NavItem";
+import MobileNav from "@/components/MobileNav";
 import { getBranding } from "@/lib/branding";
 
 const S = { width: 19, height: 19, viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: 1.75, strokeLinecap: "round", strokeLinejoin: "round" };
@@ -35,64 +36,64 @@ export default async function AppLayout({ children }) {
   }
   const initial = (user.email || "?").charAt(0).toUpperCase();
 
+  // Shared nav content — used by both desktop sidebar and mobile drawer
+  const navContent = (
+    <>
+      <nav className="mt-7 space-y-1">
+        <NavItem href="/dashboard" label="My bookings" icon={IcCalendar} />
+        <NavItem href="/calendar" label="Calendar" icon={IcCalendar} />
+        {showChat && <NavItem href="/conversations" label="Conversations" icon={IcChat} />}
+        <NavItem href="/settings" label="Settings" icon={IcCog} />
+        <NavItem href="/integrations" label="Integrations" icon={IcPlug} />
+        <NavItem href="/billing" label="Billing" icon={IcCard} />
+      </nav>
+
+      {isAdmin && (
+        <div className="mt-7">
+          <p className="px-3 pb-2 text-[11px] font-semibold uppercase tracking-[0.16em] text-white/40">Admin</p>
+          <nav className="space-y-1">
+            <NavItem href="/admin" label="Overview" icon={IcGrid} exact />
+            <NavItem href="/admin/clients" label="Clients" icon={IcUsers} />
+            <NavItem href="/admin/bookings" label="All bookings" icon={IcList} />
+            <NavItem href="/admin/calendar" label="Calendar" icon={IcCalendar} />
+            <NavItem href="/admin/plans" label="Plans" icon={IcCard} />
+            <NavItem href="/admin/assistant" label="Assistant" icon={IcSpark} />
+            <NavItem href="/admin/branding" label="Branding" icon={IcPaint} />
+          </nav>
+        </div>
+      )}
+    </>
+  );
+
+  const userBox = (
+    <div className="space-y-3">
+      <div className="flex items-center gap-2.5 rounded-xl bg-white/[0.06] px-2.5 py-2.5">
+        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-brand text-xs font-semibold text-white">{initial}</div>
+        <div className="min-w-0">
+          <p className="truncate text-[12.5px] font-medium text-white">{user.email}</p>
+          <p className="text-[11px] text-white/45">{isAdmin ? "Admin" : "Owner"}</p>
+        </div>
+      </div>
+      <SignOutButton />
+    </div>
+  );
+
   return (
     <div className="flex min-h-screen bg-canvas">
-      {/* Sidebar */}
+      {/* Desktop sidebar */}
       <aside className="hidden w-[248px] shrink-0 flex-col justify-between border-r border-black/5 bg-ink p-4 md:flex">
         <div>
           <div className="flex items-center gap-2.5 px-2 py-2">
             <div className="logo-mark h-9 w-9 text-[15px]">{appName.charAt(0)}</div>
             <span className="truncate font-bold tracking-tight text-white">{appName}</span>
           </div>
-
-          <nav className="mt-7 space-y-1">
-            <NavItem href="/dashboard" label="My bookings" icon={IcCalendar} />
-            <NavItem href="/calendar" label="Calendar" icon={IcCalendar} />
-            {showChat && <NavItem href="/conversations" label="Conversations" icon={IcChat} />}
-            <NavItem href="/settings" label="Settings" icon={IcCog} />
-            <NavItem href="/integrations" label="Integrations" icon={IcPlug} />
-            <NavItem href="/billing" label="Billing" icon={IcCard} />
-          </nav>
-
-          {isAdmin && (
-            <div className="mt-7">
-              <p className="px-3 pb-2 text-[11px] font-semibold uppercase tracking-[0.16em] text-white/40">Admin</p>
-              <nav className="space-y-1">
-                <NavItem href="/admin" label="Overview" icon={IcGrid} exact />
-                <NavItem href="/admin/clients" label="Clients" icon={IcUsers} />
-                <NavItem href="/admin/bookings" label="All bookings" icon={IcList} />
-                <NavItem href="/admin/calendar" label="Calendar" icon={IcCalendar} />
-                <NavItem href="/admin/plans" label="Plans" icon={IcCard} />
-                <NavItem href="/admin/assistant" label="Assistant" icon={IcSpark} />
-                <NavItem href="/admin/branding" label="Branding" icon={IcPaint} />
-              </nav>
-            </div>
-          )}
+          {navContent}
         </div>
-
-        <div className="space-y-3">
-          <div className="flex items-center gap-2.5 rounded-xl bg-white/[0.06] px-2.5 py-2.5">
-            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-brand text-xs font-semibold text-white">{initial}</div>
-            <div className="min-w-0">
-              <p className="truncate text-[12.5px] font-medium text-white">{user.email}</p>
-              <p className="text-[11px] text-white/45">{isAdmin ? "Admin" : "Owner"}</p>
-            </div>
-          </div>
-          <SignOutButton />
-        </div>
+        {userBox}
       </aside>
 
-      {/* Mobile top bar */}
-      <header className="fixed inset-x-0 top-0 z-10 flex items-center justify-between border-b border-black/5 bg-ink px-4 py-3 md:hidden">
-        <div className="flex items-center gap-2">
-          <div className="logo-mark h-7 w-7 text-xs">{appName.charAt(0)}</div>
-          <span className="truncate text-sm font-bold text-white">{appName}</span>
-        </div>
-        <nav className="flex items-center gap-1 text-sm">
-          <NavItem href="/dashboard" label="Bookings" />
-          {isAdmin && <NavItem href="/admin" label="Admin" exact />}
-        </nav>
-      </header>
+      {/* Mobile top bar + slide-out drawer */}
+      <MobileNav appName={appName} navContent={navContent} userBox={userBox} />
 
       {/* Main */}
       <main className="flex-1 px-5 pb-16 pt-20 md:px-12 md:pt-12">
