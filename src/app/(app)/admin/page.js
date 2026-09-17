@@ -34,11 +34,11 @@ export default async function AdminOverview() {
   return (
     <div className="space-y-8">
       <div>
-        <h1 className="text-2xl font-semibold tracking-tight text-text">Overview</h1>
-        <p className="mt-1 text-sm text-muted">A snapshot of your whole platform.</p>
+        <h1 className="page-title">Overview</h1>
+        <p className="page-sub">A snapshot of your whole platform.</p>
       </div>
 
-      <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+      <section className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-3">
         <Stat label="Total clients" value={total} />
         <Stat label="Active" value={active} accent />
         <Stat label="Suspended" value={suspended} />
@@ -48,7 +48,7 @@ export default async function AdminOverview() {
       </section>
 
       <section className="card overflow-hidden">
-        <div className="flex items-center justify-between border-b border-line px-5 py-4">
+        <div className="flex items-center justify-between border-b border-line px-4 py-4 md:px-5">
           <h2 className="text-sm font-semibold text-text">Recent bookings</h2>
           <Link href="/admin/bookings" className="text-xs font-medium text-brand hover:text-brand-dark">View all →</Link>
         </div>
@@ -57,13 +57,13 @@ export default async function AdminOverview() {
         ) : (
           <div className="divide-y divide-line">
             {bookings.map(b => (
-              <div key={b.id} className="flex items-center gap-3 px-5 py-3.5">
+              <div key={b.id} className="flex items-center gap-3 px-4 py-3.5 md:px-5">
                 <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-ink text-xs font-semibold text-white">{initials(b.customer_name)}</div>
                 <div className="min-w-0 flex-1">
                   <p className="truncate text-sm font-medium text-text">{b.customer_name || "Unknown"} · <span className="text-muted">{b.service || "—"}</span></p>
                   <p className="truncate text-xs text-muted">{bName(b.business_id)} · {when(b.start_time)}</p>
                 </div>
-                <span className="rounded-md bg-brand-tint px-2 py-1 text-xs font-semibold text-brand-dark">{b.ref_no ? `BK-${b.ref_no}` : "—"}</span>
+                <span className="shrink-0 rounded-md bg-brand-tint px-2 py-1 text-xs font-semibold text-brand-dark">{b.ref_no ? `BK-${b.ref_no}` : "—"}</span>
               </div>
             ))}
           </div>
@@ -71,21 +71,21 @@ export default async function AdminOverview() {
       </section>
 
       <section className="card overflow-hidden">
-        <div className="flex items-center justify-between border-b border-line px-5 py-4">
+        <div className="flex items-center justify-between border-b border-line px-4 py-4 md:px-5">
           <h2 className="text-sm font-semibold text-text">Newest clients</h2>
           <Link href="/admin/clients" className="text-xs font-medium text-brand hover:text-brand-dark">Manage →</Link>
         </div>
         <div className="divide-y divide-line">
           {(businesses || []).slice(0, 5).map(b => (
-            <Link key={b.id} href={`/admin/clients/${b.id}`} className="flex items-center gap-3 px-5 py-3.5 transition hover:bg-canvas/60">
+            <Link key={b.id} href={`/admin/clients/${b.id}`} className="flex items-center gap-3 px-4 py-3.5 transition hover:bg-canvas/60 md:px-5">
               <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-brand text-xs font-semibold text-white">{initials(b.name)}</div>
               <div className="min-w-0 flex-1">
                 <p className="truncate text-sm font-medium text-text">{b.name || "—"}</p>
                 <p className="truncate text-xs text-muted">Joined {when(b.created_at)}</p>
               </div>
               {b.status === "suspended"
-                ? <span className="pill bg-red-50 text-red-600">Suspended</span>
-                : <span className="pill bg-brand-tint text-brand-dark">Active</span>}
+                ? <span className="pill shrink-0 bg-red-50 text-red-600">Suspended</span>
+                : <span className="pill shrink-0 bg-brand-tint text-brand-dark">Active</span>}
             </Link>
           ))}
         </div>
@@ -96,9 +96,9 @@ export default async function AdminOverview() {
 
 function Stat({ label, value, accent }) {
   return (
-    <div className="stat">
+    <div className="stat p-4 md:p-6">
       <div className="text-[13px] font-medium text-muted">{label}</div>
-      <div className={`mt-2 text-[30px] font-bold leading-none tracking-tight ${accent ? "text-brand" : "text-text"}`}>{value}</div>
+      <div className={`mt-2 text-[26px] font-bold leading-none tracking-tight md:text-[30px] ${accent ? "text-brand" : "text-text"}`}>{value}</div>
     </div>
   );
 }

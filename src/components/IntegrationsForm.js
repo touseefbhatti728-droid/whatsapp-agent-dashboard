@@ -54,7 +54,7 @@ export default function IntegrationsForm({ businessId, initialUrl }) {
 
       <div className="card p-6">
         <h2 className="text-sm font-semibold text-text">What we send (on each booking)</h2>
-        <pre className="mt-3 overflow-x-auto rounded-xl bg-canvas p-4 text-xs text-text">{`{
+        <pre className="mt-3 max-w-full overflow-x-auto rounded-xl bg-canvas p-4 text-xs text-text">{`{
   "event": "booking.created",
   "business": "Your Business",
   "reference": "BK-1043",

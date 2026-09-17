@@ -11,6 +11,11 @@
 
 * { -webkit-font-smoothing: antialiased; text-rendering: optimizeLegibility; }
 
+html, body {
+  max-width: 100%;
+  overflow-x: hidden;
+}
+
 body {
   background-color: #f3f5f7;
   color: #101a16;
@@ -35,8 +40,8 @@ body {
     box-shadow: 0 2px 4px rgba(17,24,39,0.05), 0 16px 34px -18px rgba(17,24,39,0.20);
     transform: translateY(-2px);
   }
-  .cell { @apply px-6 py-4 text-[13.5px]; }
-  .th { @apply px-6 py-3.5 text-left text-[11px] font-semibold uppercase tracking-[0.07em] text-muted; }
+  .cell { @apply px-4 py-4 text-[13.5px] md:px-6; }
+  .th { @apply px-4 py-3.5 text-left text-[11px] font-semibold uppercase tracking-[0.07em] text-muted md:px-6; }
   .pill { @apply inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium; }
   .btn-brand {
     @apply inline-flex items-center justify-center gap-2 rounded-xl bg-brand px-4 py-2.5 text-sm font-semibold text-white transition;
@@ -57,8 +62,8 @@ body {
     background-image: linear-gradient(140deg, rgb(var(--brand-rgb)), rgb(var(--brand-dark-rgb)));
     box-shadow: 0 4px 12px -4px rgb(var(--brand-rgb) / 0.5);
   }
-  .page-title { @apply text-[26px] font-bold tracking-tight text-text; }
-  .page-sub { @apply mt-1.5 text-[15px] text-muted; }
+  .page-title { @apply text-[22px] font-bold tracking-tight text-text md:text-[26px]; }
+  .page-sub { @apply mt-1.5 text-[14px] text-muted md:text-[15px]; }
 }
 
 ::-webkit-scrollbar { width: 10px; height: 10px; }

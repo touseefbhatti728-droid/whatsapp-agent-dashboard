@@ -19,7 +19,35 @@ export default function BookingsTable({ bookings }) {
   return (
     <div className="space-y-4">
       <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search customer, service, business, ref…" className="field max-w-sm" />
-      <div className="card overflow-hidden">
+
+      {/* Mobile: card list */}
+      <div className="space-y-3 md:hidden">
+        {filtered.length === 0 ? (
+          <div className="card p-8 text-center text-sm text-muted">No bookings match "{q}".</div>
+        ) : filtered.map((b) => (
+          <div key={b.id} className="card p-4">
+            <div className="flex items-center gap-3">
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-ink text-sm font-semibold text-white">{initials(b.customer_name)}</div>
+              <div className="min-w-0 flex-1">
+                <p className="truncate font-medium text-text">{b.customer_name || "Unknown"}</p>
+                <p className="truncate text-xs text-muted">{b.customer_phone || "—"}</p>
+              </div>
+              <span className="shrink-0 rounded-md bg-brand-tint px-2 py-1 text-xs font-semibold text-brand-dark">{b.ref_no ? `BK-${b.ref_no}` : "—"}</span>
+            </div>
+            <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1.5 border-t border-line pt-3 text-xs text-muted">
+              <span className="font-medium text-text">{b.service || "—"}</span>
+              <span>{b.businessName}</span>
+              <span>{when(b.start_time)}</span>
+              {new Date(b.start_time) >= now
+                ? <span className="pill bg-brand-tint text-brand-dark">Upcoming</span>
+                : <span className="pill bg-canvas text-muted">Past</span>}
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {/* Desktop: table */}
+      <div className="card hidden overflow-hidden md:block">
         <div className="overflow-x-auto">
           <table className="w-full">
             <thead><tr className="border-b border-line">
