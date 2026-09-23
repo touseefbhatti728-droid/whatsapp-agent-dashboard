@@ -19,6 +19,27 @@ export async function saveOnboarding(fields) {
     .limit(1)
     .maybeSingle();
 
+  // normalise the WhatsApp number (digits only, keep it simple)
+  const rawNumber = fields.whatsapp_number?.trim() || "";
+  const number = rawNumber ? rawNumber.replace(/[^\d]/g, "") : "";
+
+  // basic number sanity check (7–15 digits, per international format)
+  if (number && (number.length < 7 || number.length > 15)) {
+    return { ok: false, error: "Please enter a valid WhatsApp number with country code (digits only)." };
+  }
+
+  // duplicate-number guard: no two businesses may use the same WhatsApp number
+  if (number) {
+    const { data: taken } = await supabase
+      .from("businesses")
+      .select("id, owner_id")
+      .eq("whatsapp_number", number)
+      .maybeSingle();
+    if (taken && taken.id !== biz?.id) {
+      return { ok: false, error: "This WhatsApp number is already connected to another account. Please use a different number." };
+    }
+  }
+
   const clean = {
     name: fields.name?.trim() || null,
     location: fields.location?.trim() || null,
@@ -27,7 +48,8 @@ export async function saveOnboarding(fields) {
     faq: fields.faq?.trim() || null,
     knowledge: fields.knowledge?.trim() || null,
     calendar_id: fields.calendar_id?.trim() || null,
-    whatsapp_number: fields.whatsapp_number?.trim() || null,
+    whatsapp_number: number || null,
+    wa_mode: fields.wa_mode || null,
   };
 
   let error;
@@ -39,6 +61,12 @@ export async function saveOnboarding(fields) {
 
   revalidatePath("/dashboard");
   revalidatePath("/settings");
-  if (error) return { ok: false, error: error.message };
+  if (error) {
+    // handle the DB-level unique constraint too (if you add one), just in case
+    if (/duplicate key|unique constraint/i.test(error.message)) {
+      return { ok: false, error: "This WhatsApp number is already connected to another account." };
+    }
+    return { ok: false, error: error.message };
+  }
   return { ok: true };
 }

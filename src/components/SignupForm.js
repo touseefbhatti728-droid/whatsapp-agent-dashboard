@@ -16,6 +16,9 @@ const BULLETS = [
   "Manage everything from one dashboard",
 ];
 
+// simple, reliable email format check
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
 export default function SignupForm({ appName = "NextReply" }) {
   const router = useRouter();
   const [f, setF] = useState({ name: "", email: "", password: "" });
@@ -27,19 +30,27 @@ export default function SignupForm({ appName = "NextReply" }) {
   async function submit() {
     setError(""); setNotice("");
     if (!f.name.trim()) return setError("Please enter your business name.");
-    if (!f.email.trim()) return setError("Please enter your email.");
+    const email = f.email.trim().toLowerCase();
+    if (!email) return setError("Please enter your email.");
+    if (!EMAIL_RE.test(email)) return setError("Please enter a valid email address.");
     if (f.password.length < 6) return setError("Password must be at least 6 characters.");
     setLoading(true);
     const supabase = createClient();
-    const { data, error: signErr } = await supabase.auth.signUp({ email: f.email.trim(), password: f.password });
-    if (signErr) { setLoading(false); return setError(signErr.message); }
+    const { data, error: signErr } = await supabase.auth.signUp({ email, password: f.password });
+    if (signErr) {
+      setLoading(false);
+      // friendlier message for the most common case
+      if (/already registered|already exists|user already/i.test(signErr.message)) {
+        return setError("An account with this email already exists. Please sign in instead.");
+      }
+      return setError(signErr.message);
+    }
     if (!data.session) { setLoading(false); setNotice("Account created! Please check your email to confirm, then sign in."); return; }
     const { error: bizErr } = await supabase.from("businesses").insert({
       owner_id: data.user.id, name: f.name.trim(), status: "active",
     });
     setLoading(false);
     if (bizErr) { setError("Account made, but saving business failed: " + bizErr.message); return; }
-    // straight into the guided onboarding wizard
     router.push("/onboarding"); router.refresh();
   }
 

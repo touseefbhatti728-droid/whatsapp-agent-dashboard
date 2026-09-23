@@ -11,6 +11,7 @@ export default function OnboardingWizard({ initial = {}, appName = "NextReply" }
   const [step, setStep] = useState(0);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
+  const [waMode, setWaMode] = useState(initial.wa_mode || ""); // "new" | "migrate"
   const [f, setF] = useState({
     name: initial.name || "",
     location: initial.location || "",
@@ -31,13 +32,12 @@ export default function OnboardingWizard({ initial = {}, appName = "NextReply" }
 
   async function finish() {
     setSaving(true); setError("");
-    const r = await saveOnboarding(f);
+    const r = await saveOnboarding({ ...f, wa_mode: waMode });
     setSaving(false);
     if (!r.ok) return setError(r.error || "Something went wrong.");
     router.push("/dashboard"); router.refresh();
   }
 
-  // read pasted / uploaded text file into the knowledge field
   async function onFile(e) {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -109,11 +109,82 @@ export default function OnboardingWizard({ initial = {}, appName = "NextReply" }
           )}
 
           {step === 4 && (
-            <Section title="Connect WhatsApp" sub="The number your customers already message. You can finish this in Settings anytime.">
-              <Field label="WhatsApp number (optional)" value={f.whatsapp_number} onChange={(v) => set("whatsapp_number", v)} placeholder="e.g. 15551234567" />
-              <div className="rounded-xl bg-canvas p-4 text-sm text-muted">
-                Not ready to connect WhatsApp yet? No problem — finish setup now and connect it later from Settings.
+            <Section title="Connect WhatsApp" sub="Your AI needs a WhatsApp number to reply from. Choose how you want to set it up.">
+
+              {/* Important requirement note */}
+              <div className="flex gap-3 rounded-xl border border-amber-200 bg-amber-50 p-4">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mt-0.5 flex-shrink-0 text-amber-600"><path d="M12 9v4M12 17h.01M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/></svg>
+                <p className="text-sm text-amber-900">
+                  <b>Important:</b> the number you connect must NOT be currently active on the regular WhatsApp or WhatsApp Business app. A number can only be in one place at a time — the app or the API, not both.
+                </p>
               </div>
+
+              {/* Option cards */}
+              <div className="grid gap-3 sm:grid-cols-2">
+                <button
+                  type="button"
+                  onClick={() => setWaMode("new")}
+                  className={`rounded-xl border p-4 text-left transition ${waMode === "new" ? "border-brand bg-brand-tint/50 ring-1 ring-brand" : "border-line hover:border-brand/50"}`}
+                >
+                  <div className="mb-1 flex items-center gap-2">
+                    <span className="rounded-md bg-brand/15 px-2 py-0.5 text-[11px] font-bold text-brand-dark">RECOMMENDED</span>
+                  </div>
+                  <b className="block text-sm text-text">Use a new number</b>
+                  <span className="mt-1 block text-xs text-muted">A fresh number, live in ~2 minutes. Your existing number stays untouched.</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setWaMode("migrate")}
+                  className={`rounded-xl border p-4 text-left transition ${waMode === "migrate" ? "border-brand bg-brand-tint/50 ring-1 ring-brand" : "border-line hover:border-brand/50"}`}
+                >
+                  <b className="block text-sm text-text">Migrate my existing number</b>
+                  <span className="mt-1 block text-xs text-muted">Keep your current business number. We help you move it — book a setup call.</span>
+                </button>
+              </div>
+
+              {/* Procedure: NEW number */}
+              {waMode === "new" && (
+                <div className="space-y-4">
+                  <Steps
+                    title="How to set up a new number"
+                    items={[
+                      "Get a new phone number — a cheap second SIM or a virtual number works fine.",
+                      "Make sure it is NOT registered on WhatsApp or WhatsApp Business. If it is, remove it first.",
+                      "Enter the number below. We connect it to the WhatsApp Business API.",
+                      "Verify with the one-time code (OTP) sent to that number.",
+                      "Done — your AI is live and answering on that number.",
+                    ]}
+                  />
+                  <Field label="New WhatsApp number" value={f.whatsapp_number} onChange={(v) => set("whatsapp_number", v)} placeholder="e.g. 15551234567 (with country code)" />
+                </div>
+              )}
+
+              {/* Procedure: MIGRATE existing */}
+              {waMode === "migrate" && (
+                <div className="space-y-4">
+                  <Steps
+                    title="How migrating your existing number works"
+                    items={[
+                      "Back up your current WhatsApp chats first (Google Drive or iCloud).",
+                      "Your number moves off the regular WhatsApp app — old chats won't carry over, but customers keep messaging the same number.",
+                      "We guide you through deregistering the number from WhatsApp.",
+                      "We register it on the WhatsApp Business API and verify with an OTP sent to that number.",
+                      "Your AI goes live on your existing number.",
+                    ]}
+                  />
+                  <div className="rounded-xl bg-brand-tint/50 p-4 text-sm text-brand-dark">
+                    Migration is best done together so nothing is lost. Enter your number below and finish setup — our team will reach out to book a quick setup call and move it with you.
+                  </div>
+                  <Field label="Existing WhatsApp number" value={f.whatsapp_number} onChange={(v) => set("whatsapp_number", v)} placeholder="e.g. 15551234567 (with country code)" />
+                </div>
+              )}
+
+              {!waMode && (
+                <div className="rounded-xl bg-canvas p-4 text-sm text-muted">
+                  Pick an option above to see the steps. Not ready yet? You can finish setup now and connect WhatsApp later from Settings.
+                </div>
+              )}
             </Section>
           )}
 
@@ -162,6 +233,21 @@ function Area({ label, value, onChange, placeholder, rows = 3 }) {
     <div>
       <label className="mb-1.5 block text-sm font-medium text-text">{label}</label>
       <textarea value={value} onChange={(e) => onChange(e.target.value)} placeholder={placeholder} rows={rows} className="field resize-y" />
+    </div>
+  );
+}
+function Steps({ title, items }) {
+  return (
+    <div>
+      <p className="mb-3 text-sm font-semibold text-text">{title}</p>
+      <ol className="space-y-2.5">
+        {items.map((t, i) => (
+          <li key={i} className="flex gap-3 text-sm text-body">
+            <span className="flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-md bg-brand/15 text-[11px] font-bold text-brand-dark">{i + 1}</span>
+            <span>{t}</span>
+          </li>
+        ))}
+      </ol>
     </div>
   );
 }
