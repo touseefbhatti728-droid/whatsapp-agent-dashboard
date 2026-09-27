@@ -12,6 +12,13 @@ const ALLOWED = [
   "final_message",
   "use_formal",
   "use_emoji",
+  "ai_hours_enabled",
+  "ai_hours",
+  "after_hours_message",
+  "timezone",
+  "handover_pause_minutes",
+  "handover_rules",
+  "handover_notify",
 ];
 
 export async function saveAiPersona({ id, ...fields }) {
