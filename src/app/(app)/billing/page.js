@@ -3,12 +3,14 @@ import { createClient } from "@/lib/supabase/server";
 
 function fmtDate(ts) { return ts ? new Date(ts).toLocaleDateString(undefined, { day: "numeric", month: "short", year: "numeric" }) : "—"; }
 const STATUS_LABEL = { trialing: "Trialing", active: "Active", past_due: "Past due", cancelled: "Cancelled" };
+
+// Features come from the plan's `features` column, one per line.
 function planFeatures(p) {
-  const f = [];
-  f.push(p.monthly_booking_limit == null ? "Unlimited bookings / month" : `${p.monthly_booking_limit} bookings / month`);
-  f.push(p.chat_history ? "Conversation history" : "No conversation history");
-  if (p.features) f.push(p.features);
-  return f;
+  if (!p.features) return [];
+  return String(p.features).split("\n").map((s) => s.trim()).filter(Boolean);
+}
+function bookingsLabel(p) {
+  return p.monthly_booking_limit == null ? "Unlimited bookings / month" : `${p.monthly_booking_limit.toLocaleString()} bookings / month`;
 }
 
 export default async function BillingPage() {
@@ -34,7 +36,7 @@ export default async function BillingPage() {
     <div className="space-y-8">
       <div>
         <h1 className="page-title">Billing</h1>
-        <p className="page-sub">Your current plan, usage, and available upgrades.</p>
+        <p className="page-sub">Your current plan, usage, and available plans.</p>
       </div>
 
       {biz && (
@@ -53,7 +55,7 @@ export default async function BillingPage() {
           <div className="mt-5 border-t border-line pt-5">
             <div className="flex items-center justify-between text-sm">
               <span className="font-medium text-text">Bookings this month</span>
-              <span className="text-muted">{used}{limit != null ? ` / ${limit}` : " / Unlimited"}</span>
+              <span className="text-muted">{used}{limit != null ? ` / ${limit.toLocaleString()}` : " / Unlimited"}</span>
             </div>
             {limit != null && (
               <div className="mt-2 h-2 w-full overflow-hidden rounded-full bg-canvas">
@@ -69,14 +71,21 @@ export default async function BillingPage() {
         <div className="grid gap-4 sm:grid-cols-3">
           {(plans || []).map((p) => {
             const current = biz?.plan === p.name;
+            const popular = String(p.name).toLowerCase() === "pro";
             return (
-              <div key={p.name} className={`card p-5 ${current ? "ring-2 ring-brand" : ""}`}>
+              <div key={p.name} className={`card relative flex flex-col p-5 ${current ? "ring-2 ring-brand" : popular ? "ring-1 ring-brand/40" : ""}`}>
+                {popular && !current && (
+                  <span className="absolute -top-2.5 left-5 rounded-full bg-brand px-2.5 py-0.5 text-[11px] font-semibold text-white">Most Popular</span>
+                )}
                 <div className="flex items-center justify-between">
                   <p className="font-semibold text-text">{p.name}</p>
                   {current && <span className="pill bg-brand-tint text-brand-dark">Current</span>}
                 </div>
-                <p className="mt-2 text-2xl font-bold text-text">${p.price}<span className="text-sm font-normal text-muted">/{p.interval}</span></p>
-                <ul className="mt-3 space-y-1.5">
+                <p className="mt-2 text-2xl font-bold text-text">
+                  AED {p.price}<span className="text-sm font-normal text-muted">/{p.interval}</span>
+                </p>
+                <p className="mt-1 text-sm font-medium text-brand-dark">{bookingsLabel(p)}</p>
+                <ul className="mt-3 flex-1 space-y-1.5">
                   {planFeatures(p).map((f, i) => (
                     <li key={i} className="flex gap-2 text-sm text-muted"><span className="text-brand">✓</span>{f}</li>
                   ))}
