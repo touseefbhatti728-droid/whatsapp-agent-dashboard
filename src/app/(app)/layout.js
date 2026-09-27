@@ -36,11 +36,29 @@ export default async function AppLayout({ children }) {
   }
   const initial = (user.email || "?").charAt(0).toUpperCase();
 
+  // Today's appointments (for the top status bar)
+  let apptsToday = 0;
+  {
+    const { data: bizRows } = await supabase.from("businesses").select("id");
+    const ids = (bizRows || []).map((b) => b.id);
+    if (ids.length) {
+      const start = new Date(); start.setHours(0, 0, 0, 0);
+      const end = new Date(start); end.setDate(end.getDate() + 1);
+      const { count } = await supabase
+        .from("bookings")
+        .select("id", { count: "exact", head: true })
+        .in("business_id", ids)
+        .gte("start_time", start.toISOString())
+        .lt("start_time", end.toISOString());
+      apptsToday = count || 0;
+    }
+  }
+
   // Shared nav content — used by both desktop sidebar and mobile drawer
   const navContent = (
     <>
       <nav className="mt-7 space-y-1">
-        <NavItem href="/dashboard" label="My bookings" icon={IcCalendar} />
+        <NavItem href="/dashboard" label="Overview" icon={IcGrid} exact />
         <NavItem href="/calendar" label="Calendar" icon={IcCalendar} />
         {showChat && <NavItem href="/conversations" label="Conversations" icon={IcChat} />}
         <NavItem href="/settings" label="Settings" icon={IcCog} />
@@ -79,7 +97,7 @@ export default async function AppLayout({ children }) {
   );
 
   return (
-    <div className="flex min-h-screen bg-canvas">
+    <div className="flex min-h-screen bg-[#f6f4ef]">
       {/* Desktop sidebar */}
       <aside className="hidden w-[248px] shrink-0 flex-col justify-between border-r border-black/5 bg-ink p-4 md:flex">
         <div>
@@ -95,10 +113,27 @@ export default async function AppLayout({ children }) {
       {/* Mobile top bar + slide-out drawer */}
       <MobileNav appName={appName} navContent={navContent} userBox={userBox} />
 
-      {/* Main */}
-      <main className="flex-1 px-5 pb-16 pt-20 md:px-12 md:pt-12">
-        <div className="mx-auto max-w-5xl">{children}</div>
-      </main>
+      {/* Right side: status bar + main */}
+      <div className="flex flex-1 flex-col">
+        {/* Desktop status bar */}
+        <div className="sticky top-0 z-20 hidden items-center justify-between border-b border-black/[0.06] bg-[#f6f4ef]/80 px-12 py-3.5 backdrop-blur md:flex">
+          <div className="flex items-center gap-2 text-[13px] text-muted">
+            <span className="text-brand">{IcCalendar}</span>
+            <span>Today: <b className="font-semibold text-text">{apptsToday}</b> appointment{apptsToday === 1 ? "" : "s"}</span>
+          </div>
+          <div className="flex items-center gap-3">
+            <span className="pill bg-brand-tint text-brand-dark">{isAdmin ? "Admin" : "Owner"}</span>
+            <button className="flex h-9 w-9 items-center justify-center rounded-full border border-black/[0.06] bg-surface text-muted transition hover:text-text" aria-label="Notifications">
+              <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+            </button>
+          </div>
+        </div>
+
+        {/* Main */}
+        <main className="flex-1 px-5 pb-16 pt-20 md:px-12 md:pt-8">
+          <div className="mx-auto max-w-5xl">{children}</div>
+        </main>
+      </div>
     </div>
   );
 }

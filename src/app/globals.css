@@ -4,9 +4,10 @@
 
 :root {
   color-scheme: light;
-  --brand-rgb: 15 157 106;
-  --brand-dark-rgb: 12 129 87;
-  --brand-tint-rgb: 231 245 238;
+  /* NextReply purple */
+  --brand-rgb: 109 58 237;
+  --brand-dark-rgb: 91 33 182;
+  --brand-tint-rgb: 237 233 254;
 }
 
 * { -webkit-font-smoothing: antialiased; text-rendering: optimizeLegibility; }
@@ -17,8 +18,9 @@ html, body {
 }
 
 body {
-  background-color: #f3f5f7;
-  color: #101a16;
+  /* warm off-white for a softer, premium feel */
+  background-color: #f6f4ef;
+  color: #17131f;
   letter-spacing: -0.006em;
 }
 
@@ -45,7 +47,7 @@ body {
   .pill { @apply inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium; }
   .btn-brand {
     @apply inline-flex items-center justify-center gap-2 rounded-xl bg-brand px-4 py-2.5 text-sm font-semibold text-white transition;
-    box-shadow: 0 1px 2px rgba(16,36,30,0.12), 0 10px 22px -10px rgb(var(--brand-rgb) / 0.55);
+    box-shadow: 0 1px 2px rgba(30,16,54,0.12), 0 10px 22px -10px rgb(var(--brand-rgb) / 0.55);
   }
   .btn-brand:hover { @apply bg-brand-dark; transform: translateY(-1px); }
   .btn-brand:disabled { @apply opacity-60; box-shadow: none; transform: none; }
@@ -67,5 +69,5 @@ body {
 }
 
 ::-webkit-scrollbar { width: 10px; height: 10px; }
-::-webkit-scrollbar-thumb { background: #d6dbdd; border-radius: 999px; border: 3px solid #f3f5f7; }
-::-webkit-scrollbar-thumb:hover { background: #c2c9cc; }
+::-webkit-scrollbar-thumb { background: #ddd8cf; border-radius: 999px; border: 3px solid #f6f4ef; }
+::-webkit-scrollbar-thumb:hover { background: #cbc5b8; }

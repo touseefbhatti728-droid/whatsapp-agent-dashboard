@@ -60,6 +60,7 @@ export default async function DashboardPage() {
     { label: "Get your first booking on WhatsApp", href: "/conversations", done: hasBookings },
   ];
   const doneCount = steps.filter((s) => s.done).length;
+  const pct = Math.round((doneCount / steps.length) * 100);
 
   return (
     <div className="space-y-8">
@@ -75,24 +76,29 @@ export default async function DashboardPage() {
         </Link>
       </div>
 
-      {/* Setup checklist */}
+      {/* Setup — dark banner + progress + light step cards */}
       {showSetup && (
-        <section className="card overflow-hidden">
-          <div className="flex items-center justify-between border-b border-line px-4 py-4 md:px-5">
+        <section className="overflow-hidden rounded-[20px] bg-ink text-white shadow-[0_24px_48px_-28px_rgba(17,24,39,0.5)]">
+          <div className="flex flex-wrap items-center justify-between gap-3 px-5 py-4">
             <div className="flex items-center gap-3">
-              <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-ink text-white">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="16" rx="3" /><path d="M8 2v4M16 2v4M3 10h18" /></svg>
+              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-white/10">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><rect x="4" y="7" width="16" height="12" rx="3" /><path d="M12 3v4M9 13h.01M15 13h.01" /></svg>
               </div>
               <div>
-                <h2 className="text-sm font-semibold text-text">Get your AI receptionist live</h2>
-                <p className="text-xs text-muted">{doneCount} of {steps.length} done</p>
+                <h2 className="text-sm font-semibold">Launch your AI receptionist</h2>
+                <p className="text-xs text-white/50">{doneCount} of {steps.length} steps complete</p>
               </div>
             </div>
-            <Link href="/onboarding" className="btn-brand hidden sm:inline-flex">Continue setup</Link>
+            <Link href="/onboarding" className="btn-brand">Continue setup</Link>
           </div>
-          <div className="grid gap-px bg-line sm:grid-cols-2">
+          <div className="px-5 pb-4">
+            <div className="h-1.5 w-full overflow-hidden rounded-full bg-white/10">
+              <div className="h-full rounded-full bg-brand transition-all" style={{ width: `${pct}%` }} />
+            </div>
+          </div>
+          <div className="grid gap-3 bg-surface p-5 sm:grid-cols-2">
             {steps.map((s) => (
-              <Link key={s.label} href={s.href} className="flex items-center gap-3 bg-white p-4 transition hover:bg-canvas/60">
+              <Link key={s.label} href={s.href} className="flex items-center gap-3 rounded-xl border border-line bg-canvas/40 p-3.5 transition hover:border-brand/40 hover:bg-brand-tint/40">
                 <span className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full border ${s.done ? "border-brand bg-brand text-white" : "border-line text-muted"}`}>
                   {s.done
                     ? <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6 9 17l-5-5" /></svg>
