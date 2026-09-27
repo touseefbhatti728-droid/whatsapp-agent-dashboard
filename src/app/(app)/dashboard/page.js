@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
+import BookingLink from "@/components/BookingLink";
 
 function formatWhen(ts) {
   if (!ts) return "—";
@@ -51,6 +52,8 @@ export default async function DashboardPage() {
   const businessName = (id) => (businesses || []).find((b) => b.id === id)?.name || "—";
 
   const waConnected = !!primary?.whatsapp_number;
+  const waDigits = (primary?.whatsapp_number || "").replace(/\D/g, "");
+  const bookingLink = waDigits ? `https://wa.me/${waDigits}?text=${encodeURIComponent("Hi, I'd like to book an appointment")}` : "";
   const hasBookings = bookings.length > 0;
   const showSetup = !waConnected || !hasBookings;
   const steps = [
@@ -75,6 +78,9 @@ export default async function DashboardPage() {
           New appointment
         </Link>
       </div>
+
+      {/* WhatsApp booking link */}
+      <BookingLink link={bookingLink} connected={waConnected} />
 
       {/* Setup — dark banner + progress + light step cards */}
       {showSetup && (
