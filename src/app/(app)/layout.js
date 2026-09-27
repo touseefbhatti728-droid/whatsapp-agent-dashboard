@@ -17,6 +17,7 @@ const IcPlug = (<svg {...S}><path d="M9 2v6M15 2v6M7 8h10v3a5 5 0 0 1-10 0zM12 1
 const IcCard = (<svg {...S}><rect x="2" y="5" width="20" height="14" rx="2.5"/><path d="M2 10h20"/></svg>);
 const IcPaint = (<svg {...S}><path d="M12 2a9 9 0 0 0 0 18 2 2 0 0 0 2-2v-1a2 2 0 0 1 2-2h1a4 4 0 0 0 4-4 9 9 0 0 0-9-9z"/><circle cx="7.5" cy="10.5" r="1"/><circle cx="12" cy="7.5" r="1"/><circle cx="16.5" cy="10.5" r="1"/></svg>);
 const IcChart = (<svg {...S}><path d="M3 3v18h18M7 16v-5M12 16V8M17 16v-3"/></svg>);
+const IcRobot = (<svg {...S}><rect x="4" y="7" width="16" height="12" rx="3"/><path d="M12 3v4M9 13h.01M15 13h.01"/></svg>);
 
 export default async function AppLayout({ children }) {
   const supabase = await createClient();
@@ -63,6 +64,7 @@ export default async function AppLayout({ children }) {
         <NavItem href="/calendar" label="Calendar" icon={IcCalendar} />
         <NavItem href="/clients" label="Clients" icon={IcUsers} />
         {showChat && <NavItem href="/conversations" label="Conversations" icon={IcChat} />}
+        <NavItem href="/ai-front-desk" label="AI front desk" icon={IcRobot} />
         <NavItem href="/insights" label="Insights" icon={IcChart} />
         <NavItem href="/settings" label="Settings" icon={IcCog} />
         <NavItem href="/integrations" label="Integrations" icon={IcPlug} />
