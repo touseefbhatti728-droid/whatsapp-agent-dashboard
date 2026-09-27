@@ -57,9 +57,9 @@ export default async function DashboardPage() {
   const hasBookings = bookings.length > 0;
   const showSetup = !waConnected || !hasBookings;
   const steps = [
-    { label: "Add your services & working hours", href: "/onboarding", done: false },
+    { label: "Add your services", href: "/services", done: false },
+    { label: "Set up your AI front desk", href: "/ai-front-desk", done: false },
     { label: "Connect your WhatsApp number", href: "/integrations", done: waConnected },
-    { label: "Connect your Google Calendar", href: "/integrations", done: false },
     { label: "Get your first booking on WhatsApp", href: "/conversations", done: hasBookings },
   ];
   const doneCount = steps.filter((s) => s.done).length;
@@ -95,7 +95,7 @@ export default async function DashboardPage() {
                 <p className="text-xs text-white/50">{doneCount} of {steps.length} steps complete</p>
               </div>
             </div>
-            <Link href="/onboarding" className="btn-brand">Continue setup</Link>
+            <Link href="/ai-front-desk" className="btn-brand">Continue setup</Link>
           </div>
           <div className="px-5 pb-4">
             <div className="h-1.5 w-full overflow-hidden rounded-full bg-white/10">
@@ -135,12 +135,12 @@ export default async function DashboardPage() {
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
           <Action href="/calendar" title="New appointment" desc="Add a client, service and time."
             icon={<><rect x="3" y="4" width="18" height="16" rx="3" /><path d="M8 2v4M16 2v4M3 10h18" /></>} />
-          <Action href="/integrations" title="Set up AI & channels" desc="Manage the front desk and connections."
-            icon={<><rect x="3" y="3" width="7" height="7" rx="1.5" /><rect x="14" y="3" width="7" height="7" rx="1.5" /><rect x="14" y="14" width="7" height="7" rx="1.5" /><rect x="3" y="14" width="7" height="7" rx="1.5" /></>} />
+          <Action href="/ai-front-desk" title="AI front desk" desc="Set your assistant, hours and handover."
+            icon={<><rect x="4" y="7" width="16" height="12" rx="3" /><path d="M12 3v4M9 13h.01M15 13h.01" /></>} />
+          <Action href="/services" title="Services" desc="Add your services and prices."
+            icon={<><path d="M20.59 13.41 13.42 20.6a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z" /><path d="M7 7h.01" /></>} />
           <Action href="/conversations" title="Conversations" desc="Read every WhatsApp chat."
             icon={<path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />} />
-          <Action href="/calendar" title="Open schedule" desc="See your whole week at a glance."
-            icon={<><rect x="3" y="4" width="18" height="16" rx="3" /><path d="M8 2v4M16 2v4M3 10h18M8 14h.01M12 14h.01M16 14h.01" /></>} />
         </div>
       </section>
 
