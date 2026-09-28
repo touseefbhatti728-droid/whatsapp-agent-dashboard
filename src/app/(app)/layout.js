@@ -21,7 +21,6 @@ const IcRobot = (<svg {...S}><rect x="4" y="7" width="16" height="12" rx="3"/><p
 const IcTag = (<svg {...S}><path d="M20.59 13.41 13.42 20.6a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/><path d="M7 7h.01"/></svg>);
 const IcBook = (<svg {...S}><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>);
 const IcUser = (<svg {...S}><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>);
-const IcMega = (<svg {...S}><path d="M3 11v2a1 1 0 0 0 1 1h2l4 4V6L6 10H4a1 1 0 0 0-1 1z"/><path d="M14 8a4 4 0 0 1 0 8M18 5a8 8 0 0 1 0 14"/></svg>);
 
 export default async function AppLayout({ children }) {
   const supabase = await createClient();
@@ -72,7 +71,6 @@ export default async function AppLayout({ children }) {
         <NavItem href="/services" label="Services" icon={IcTag} />
         <NavItem href="/team" label="Team" icon={IcUser} />
         <NavItem href="/knowledge" label="Knowledge" icon={IcBook} />
-        <NavItem href="/marketing" label="Marketing" icon={IcMega} />
         <NavItem href="/insights" label="Insights" icon={IcChart} />
         <NavItem href="/settings" label="Settings" icon={IcCog} />
         <NavItem href="/integrations" label="Integrations" icon={IcPlug} />
