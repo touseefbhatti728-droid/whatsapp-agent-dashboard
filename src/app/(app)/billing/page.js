@@ -14,6 +14,21 @@ const PLAN_META = {
   business: { tagline: "For growing brands with high message volume and their own tools.", header: "Everything in Pro, plus", icon: IcGrid },
 };
 
+const CHECKOUT_LINKS = {
+  starter: "https://nextreply.lemonsqueezy.com/checkout/buy/8bf2e2a0-350e-4056-9dfe-d58d8fa79b6b",
+  pro: "https://nextreply.lemonsqueezy.com/checkout/buy/c590c511-97ea-4e9e-a6e8-d2af401eb600",
+  business: "https://nextreply.lemonsqueezy.com/checkout/buy/c0c0c0b7-d03a-4023-a10b-ae9fed866d5b",
+};
+function checkoutUrl(name, user, biz) {
+  const base = CHECKOUT_LINKS[String(name).toLowerCase()];
+  if (!base) return null;
+  const params = new URLSearchParams();
+  if (user?.email) params.set("checkout[email]", user.email);
+  if (biz?.id) params.set("checkout[custom][business_id]", biz.id);
+  const qs = params.toString();
+  return qs ? `${base}?${qs}` : base;
+}
+
 function planFeatures(p) {
   if (!p.features) return [];
   return String(p.features).split("\n").map((s) => s.trim())
@@ -83,6 +98,7 @@ export default async function BillingPage() {
             const current = biz?.plan === p.name;
             const popular = String(p.name).toLowerCase() === "pro";
             const features = [bookingsLabel(p), ...planFeatures(p)];
+            const url = current ? null : checkoutUrl(p.name, user, biz);
 
             if (popular) {
               return (
@@ -99,7 +115,13 @@ export default async function BillingPage() {
                       <li key={i} className="flex gap-2.5 text-sm text-white/85"><Check dark />{f}</li>
                     ))}
                   </ul>
-                  <button disabled className="mt-6 w-full rounded-xl bg-white py-2.5 text-sm font-semibold text-ink opacity-90">{current ? "Your plan" : "Upgrade (coming soon)"}</button>
+                  {current ? (
+                    <button disabled className="mt-6 w-full rounded-xl bg-white py-2.5 text-sm font-semibold text-ink opacity-90">Your plan</button>
+                  ) : url ? (
+                    <a href={url} target="_blank" rel="noopener noreferrer" className="mt-6 block w-full rounded-xl bg-white py-2.5 text-center text-sm font-semibold text-ink transition hover:opacity-90">Upgrade</a>
+                  ) : (
+                    <button disabled className="mt-6 w-full rounded-xl bg-white py-2.5 text-sm font-semibold text-ink opacity-90">Upgrade (coming soon)</button>
+                  )}
                 </div>
               );
             }
@@ -120,12 +142,18 @@ export default async function BillingPage() {
                     <li key={i} className="flex gap-2.5 text-sm text-text/80"><Check />{f}</li>
                   ))}
                 </ul>
-                <button disabled className="mt-6 w-full rounded-xl border border-line py-2.5 text-sm font-semibold text-muted">{current ? "Your plan" : "Upgrade (coming soon)"}</button>
+                {current ? (
+                  <button disabled className="mt-6 w-full rounded-xl border border-line py-2.5 text-sm font-semibold text-muted">Your plan</button>
+                ) : url ? (
+                  <a href={url} target="_blank" rel="noopener noreferrer" className="mt-6 block w-full rounded-xl bg-brand py-2.5 text-center text-sm font-semibold text-white transition hover:opacity-90">Upgrade</a>
+                ) : (
+                  <button disabled className="mt-6 w-full rounded-xl border border-line py-2.5 text-sm font-semibold text-muted">Upgrade (coming soon)</button>
+                )}
               </div>
             );
           })}
         </div>
-        <p className="mt-4 text-xs text-muted">Online payments are coming soon. For now, your provider manages your plan.</p>
+        <p className="mt-4 text-xs text-muted">Upgrade opens a secure checkout. Your plan activates automatically once payment is confirmed.</p>
       </div>
     </div>
   );
