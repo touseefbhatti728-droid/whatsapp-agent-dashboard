@@ -62,8 +62,11 @@ export default function ConnectWhatsApp({ connectedNumber }) {
     setMsg("");
     sessionRef.current = {};
 
+    // NOTE: the Facebook SDK rejects async callbacks ("Expression is of type
+    // asyncfunction, not function"), so this must be a plain function that
+    // kicks off the async work with .then()/.catch().
     window.FB.login(
-      async function (response) {
+      function (response) {
         const code = response && response.authResponse && response.authResponse.code;
         if (!code) {
           setStatus("error");
@@ -72,23 +75,24 @@ export default function ConnectWhatsApp({ connectedNumber }) {
         }
         setStatus("saving");
         const info = sessionRef.current || {};
-        try {
-          const r = await connectWhatsApp({
-            code,
-            phoneNumberId: info.phone_number_id || null,
-            wabaId: info.waba_id || null,
-          });
-          if (r.ok) {
-            setStatus("done");
-            setMsg("WhatsApp connect ho gaya ✅ " + (r.phoneNumber ? "(" + r.phoneNumber + ")" : ""));
-          } else {
+        connectWhatsApp({
+          code,
+          phoneNumberId: info.phone_number_id || null,
+          wabaId: info.waba_id || null,
+        })
+          .then(function (r) {
+            if (r && r.ok) {
+              setStatus("done");
+              setMsg("WhatsApp connect ho gaya ✅ " + (r.phoneNumber ? "(" + r.phoneNumber + ")" : ""));
+            } else {
+              setStatus("error");
+              setMsg((r && r.error) || "Connect fail ho gaya.");
+            }
+          })
+          .catch(function (e) {
             setStatus("error");
-            setMsg(r.error || "Connect fail ho gaya.");
-          }
-        } catch (e) {
-          setStatus("error");
-          setMsg((e && e.message) || "Connect fail ho gaya.");
-        }
+            setMsg((e && e.message) || "Connect fail ho gaya.");
+          });
       },
       {
         config_id: FB_CONFIG_ID,
