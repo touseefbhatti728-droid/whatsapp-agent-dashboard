@@ -1,5 +1,9 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import StripeUpgradeButton from "@/components/StripeUpgradeButton";
+
+// Displayed prices (USD) — charged amount comes from Stripe.
+const USD_PRICE = { starter: 29, pro: 59, business: 99 };
 
 function fmtDate(ts) { return ts ? new Date(ts).toLocaleDateString(undefined, { day: "numeric", month: "short", year: "numeric" }) : "—"; }
 const STATUS_LABEL = { trialing: "Trialing", active: "Active", past_due: "Past due", cancelled: "Cancelled" };
@@ -13,21 +17,6 @@ const PLAN_META = {
   pro: { tagline: "For busy businesses that never want to miss a booking, with full chat history.", header: "Everything in Starter, plus", icon: IcSpark },
   business: { tagline: "For growing brands with high message volume and their own tools.", header: "Everything in Pro, plus", icon: IcGrid },
 };
-
-const CHECKOUT_LINKS = {
-  starter: "https://nextreply.lemonsqueezy.com/checkout/buy/8bf2e2a0-350e-4056-9dfe-d58d8fa79b6b",
-  pro: "https://nextreply.lemonsqueezy.com/checkout/buy/c590c511-97ea-4e9e-a6e8-d2af401eb600",
-  business: "https://nextreply.lemonsqueezy.com/checkout/buy/c0c0c0b7-d03a-4023-a10b-ae9fed866d5b",
-};
-function checkoutUrl(name, user, biz) {
-  const base = CHECKOUT_LINKS[String(name).toLowerCase()];
-  if (!base) return null;
-  const params = new URLSearchParams();
-  if (user?.email) params.set("checkout[email]", user.email);
-  if (biz?.id) params.set("checkout[custom][business_id]", biz.id);
-  const qs = params.toString();
-  return qs ? `${base}?${qs}` : base;
-}
 
 function planFeatures(p) {
   if (!p.features) return [];
@@ -98,7 +87,7 @@ export default async function BillingPage() {
             const current = biz?.plan === p.name;
             const popular = String(p.name).toLowerCase() === "pro";
             const features = [bookingsLabel(p), ...planFeatures(p)];
-            const url = current ? null : checkoutUrl(p.name, user, biz);
+            const priceUsd = USD_PRICE[String(p.name).toLowerCase()] ?? p.price;
 
             if (popular) {
               return (
@@ -107,7 +96,7 @@ export default async function BillingPage() {
                   <span className="flex h-11 w-11 items-center justify-center rounded-xl bg-brand text-white">{meta.icon}</span>
                   <p className="mt-4 text-lg font-bold">{p.name}</p>
                   {meta.tagline && <p className="mt-1 text-sm text-white/55">{meta.tagline}</p>}
-                  <p className="mt-4 text-3xl font-extrabold">AED {p.price}<span className="text-base font-medium text-white/50">/{p.interval === "month" ? "mo" : p.interval}</span></p>
+                  <p className="mt-4 text-3xl font-extrabold">${priceUsd}<span className="text-base font-medium text-white/50">/{p.interval === "month" ? "mo" : p.interval}</span></p>
                   <div className="my-5 h-px w-full bg-white/10" />
                   <p className="mb-3 text-[11px] font-semibold uppercase tracking-wide text-white/45">{meta.header}</p>
                   <ul className="flex-1 space-y-2.5">
@@ -115,13 +104,7 @@ export default async function BillingPage() {
                       <li key={i} className="flex gap-2.5 text-sm text-white/85"><Check dark />{f}</li>
                     ))}
                   </ul>
-                  {current ? (
-                    <button disabled className="mt-6 w-full rounded-xl bg-white py-2.5 text-sm font-semibold text-ink opacity-90">Your plan</button>
-                  ) : url ? (
-                    <a href={url} target="_blank" rel="noopener noreferrer" className="mt-6 block w-full rounded-xl bg-white py-2.5 text-center text-sm font-semibold text-ink transition hover:opacity-90">Upgrade</a>
-                  ) : (
-                    <button disabled className="mt-6 w-full rounded-xl bg-white py-2.5 text-sm font-semibold text-ink opacity-90">Upgrade (coming soon)</button>
-                  )}
+                  <StripeUpgradeButton plan={p.name} current={current} popular />
                 </div>
               );
             }
@@ -134,7 +117,7 @@ export default async function BillingPage() {
                 </div>
                 <p className="mt-4 text-lg font-bold text-text">{p.name}</p>
                 {meta.tagline && <p className="mt-1 text-sm text-muted">{meta.tagline}</p>}
-                <p className="mt-4 text-3xl font-extrabold text-text">AED {p.price}<span className="text-base font-medium text-muted">/{p.interval === "month" ? "mo" : p.interval}</span></p>
+                <p className="mt-4 text-3xl font-extrabold text-text">${priceUsd}<span className="text-base font-medium text-muted">/{p.interval === "month" ? "mo" : p.interval}</span></p>
                 <div className="my-5 h-px w-full bg-line" />
                 <p className="mb-3 text-[11px] font-semibold uppercase tracking-wide text-muted">{meta.header}</p>
                 <ul className="flex-1 space-y-2.5">
@@ -142,13 +125,7 @@ export default async function BillingPage() {
                     <li key={i} className="flex gap-2.5 text-sm text-text/80"><Check />{f}</li>
                   ))}
                 </ul>
-                {current ? (
-                  <button disabled className="mt-6 w-full rounded-xl border border-line py-2.5 text-sm font-semibold text-muted">Your plan</button>
-                ) : url ? (
-                  <a href={url} target="_blank" rel="noopener noreferrer" className="mt-6 block w-full rounded-xl bg-brand py-2.5 text-center text-sm font-semibold text-white transition hover:opacity-90">Upgrade</a>
-                ) : (
-                  <button disabled className="mt-6 w-full rounded-xl border border-line py-2.5 text-sm font-semibold text-muted">Upgrade (coming soon)</button>
-                )}
+                <StripeUpgradeButton plan={p.name} current={current} />
               </div>
             );
           })}
