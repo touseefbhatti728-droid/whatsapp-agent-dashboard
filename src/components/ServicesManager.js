@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { addService, updateService, deleteService } from "@/lib/services-actions";
+import { toast } from "@/lib/toast";
 
 export default function ServicesManager({ businesses, services }) {
   const router = useRouter();
@@ -18,7 +19,8 @@ export default function ServicesManager({ businesses, services }) {
     setBusy(true); setError("");
     const res = await addService({ business_id: selectedId, ...draft });
     setBusy(false);
-    if (res && res.ok === false) { setError(res.error || "Could not add."); return; }
+    if (res && res.ok === false) { setError(res.error || "Could not add."); toast.error("Could not add service", res.error); return; }
+    toast.success("Service added", draft.name);
     setDraft({ name: "", category: "", price: "", duration_min: "" });
     router.refresh();
   }
@@ -88,8 +90,11 @@ function ServiceRow({ service, onChanged }) {
 
   async function save() {
     setBusy(true);
-    await updateService({ id: service.id, ...row });
-    setBusy(false); setSaved(true); setTimeout(() => setSaved(false), 1500);
+    const res = await updateService({ id: service.id, ...row });
+    setBusy(false);
+    if (res && res.ok === false) { toast.error("Could not save service", res.error); return; }
+    setSaved(true); setTimeout(() => setSaved(false), 1500);
+    toast.success("Service saved", row.name);
     onChanged();
   }
   async function toggleActive() {

@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { addTeamMember, updateTeamMember, deleteTeamMember } from "@/lib/team-actions";
+import { toast } from "@/lib/toast";
 
 function initials(name) {
   if (!name) return "•";
@@ -23,7 +24,8 @@ export default function TeamManager({ businesses, members }) {
     setBusy(true); setError("");
     const res = await addTeamMember({ business_id: selectedId, ...draft });
     setBusy(false);
-    if (res && res.ok === false) { setError(res.error || "Could not add."); return; }
+    if (res && res.ok === false) { setError(res.error || "Could not add."); toast.error("Could not add team member", res.error); return; }
+    toast.success("Team member added", draft.name);
     setDraft({ name: "", role: "" });
     router.refresh();
   }

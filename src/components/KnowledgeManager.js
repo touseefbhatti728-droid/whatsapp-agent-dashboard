@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { addKnowledge, updateKnowledge, deleteKnowledge } from "@/lib/knowledge-actions";
+import { toast } from "@/lib/toast";
 
 const SECTIONS = [
   { type: "promotion", title: "Promotions", desc: "Current offers the AI can mention to customers.", titlePh: "e.g. Ramadan offer", contentPh: "20% off all services this week", titled: true },
@@ -49,7 +50,8 @@ function Section({ config, businessId, rows, onChanged }) {
     setBusy(true); setError("");
     const res = await addKnowledge({ business_id: businessId, type: config.type, title: draft.title, content: draft.content });
     setBusy(false);
-    if (res && res.ok === false) { setError(res.error || "Could not add."); return; }
+    if (res && res.ok === false) { setError(res.error || "Could not add."); toast.error("Could not add", res.error); return; }
+    toast.success("Added to knowledge", "The AI will use this from the next message.");
     setDraft({ title: "", content: "" });
     onChanged();
   }

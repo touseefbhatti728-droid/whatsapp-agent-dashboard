@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { saveAiPersona } from "@/lib/ai-frontdesk-actions";
+import { toast } from "@/lib/toast";
 
 const LANGUAGES = ["Auto (match customer)", "English", "Arabic", "Urdu", "Hindi", "French", "Spanish", "Filipino", "Russian"];
 const TONES = ["Warm and caring", "Friendly & casual", "Professional", "Playful", "Formal & polite"];
@@ -62,8 +63,9 @@ export default function AiFrontDeskForm({ businesses }) {
     setError("");
     const res = await saveAiPersona({ id: selectedId, ...form });
     setSaving(false);
-    if (res && res.ok === false) { setError(res.error || "Could not save. Please try again."); return; }
+    if (res && res.ok === false) { setError(res.error || "Could not save. Please try again."); toast.error("Could not save", res.error); return; }
     setSaved(true);
+    toast.success("AI front desk saved", "Your AI will use these settings from the next message.");
     router.refresh();
   }
 

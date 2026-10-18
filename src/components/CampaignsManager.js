@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { seedStarterCampaigns, addCampaign, updateCampaign, toggleCampaign, deleteCampaign } from "@/lib/campaign-actions";
+import { toast } from "@/lib/toast";
 
 const CATEGORY_LABEL = {
   reminder: "Appointment reminder",
@@ -36,7 +37,8 @@ export default function CampaignsManager({ businesses, campaigns }) {
     setBusy(true); setError("");
     const res = await seedStarterCampaigns(selectedId);
     setBusy(false);
-    if (res && res.ok === false) { setError(res.error || "Could not create."); return; }
+    if (res && res.ok === false) { setError(res.error || "Could not create."); toast.error("Could not create campaigns", res.error); return; }
+    toast.success("Starter campaigns created");
     router.refresh();
   }
 
@@ -156,7 +158,8 @@ function NewCampaign({ businessId, onDone }) {
       trigger_type: trigger, offset_minutes: toMinutes(), message: form.message,
     });
     setBusy(false);
-    if (res && res.ok === false) { setError(res.error || "Could not add."); return; }
+    if (res && res.ok === false) { setError(res.error || "Could not add."); toast.error("Could not add campaign", res.error); return; }
+    toast.success("Campaign added", form.name);
     onDone();
   }
 
