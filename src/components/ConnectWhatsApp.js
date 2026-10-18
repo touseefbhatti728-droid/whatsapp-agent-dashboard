@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { connectWhatsApp } from "@/lib/whatsapp-actions";
+import { toast } from "@/lib/toast";
 
 const FB_APP_ID = process.env.NEXT_PUBLIC_FB_APP_ID;
 const FB_CONFIG_ID = process.env.NEXT_PUBLIC_FB_CONFIG_ID;
@@ -40,6 +41,7 @@ export default function ConnectWhatsApp({ connectedNumber }) {
         if (data && data.type === "WA_EMBEDDED_SIGNUP" && data.data) {
           if (data.data.phone_number_id) sessionRef.current.phone_number_id = data.data.phone_number_id;
           if (data.data.waba_id) sessionRef.current.waba_id = data.data.waba_id;
+          if (data.event) sessionRef.current.event = data.event;
         }
       } catch (_) {}
     }
@@ -47,15 +49,15 @@ export default function ConnectWhatsApp({ connectedNumber }) {
     return () => window.removeEventListener("message", onMessage);
   }, []);
 
-  function launch() {
+  function launch(coexistence) {
     if (!FB_APP_ID || !FB_CONFIG_ID) {
       setStatus("error");
-      setMsg("WhatsApp connect abhi configure nahi hua (env missing).");
+      setMsg("WhatsApp connect isn't configured yet.");
       return;
     }
     if (!window.FB) {
       setStatus("error");
-      setMsg("Facebook abhi load ho raha hai — 2 second baad dobara try karein.");
+      setMsg("Facebook is still loading — try again in 2 seconds.");
       return;
     }
     setStatus("connecting");
@@ -70,7 +72,7 @@ export default function ConnectWhatsApp({ connectedNumber }) {
         const code = response && response.authResponse && response.authResponse.code;
         if (!code) {
           setStatus("error");
-          setMsg("Connect cancel ho gaya ya permission nahi di gayi.");
+          setMsg("Connection was cancelled or permission wasn't given.");
           return;
         }
         setStatus("saving");
@@ -79,26 +81,31 @@ export default function ConnectWhatsApp({ connectedNumber }) {
           code,
           phoneNumberId: info.phone_number_id || null,
           wabaId: info.waba_id || null,
+          coexistence: !!coexistence || info.event === "FINISH_WHATSAPP_BUSINESS_APP_ONBOARDING",
         })
           .then(function (r) {
             if (r && r.ok) {
               setStatus("done");
-              setMsg("WhatsApp connect ho gaya ✅ " + (r.phoneNumber ? "(" + r.phoneNumber + ")" : ""));
+              setMsg("WhatsApp connected ✅ " + (r.phoneNumber ? "(" + r.phoneNumber + ")" : ""));
+              toast.success("WhatsApp connected", r.phoneNumber ? r.phoneNumber + " is live — your AI now replies to customers." : "Your AI now replies to customers.");
             } else {
               setStatus("error");
-              setMsg((r && r.error) || "Connect fail ho gaya.");
+              setMsg((r && r.error) || "Connection failed. Please try again.");
+              toast.error("WhatsApp connect failed", (r && r.error) || undefined);
             }
           })
           .catch(function (e) {
             setStatus("error");
-            setMsg((e && e.message) || "Connect fail ho gaya.");
+            setMsg((e && e.message) || "Connection failed. Please try again.");
           });
       },
       {
         config_id: FB_CONFIG_ID,
         response_type: "code",
         override_default_response_type: true,
-        extras: { setup: {}, featureType: "", sessionInfoVersion: "3" },
+        // featureType "whatsapp_business_app_onboarding" = Coexistence: the number keeps
+        // working in the owner's WhatsApp Business app AND on NextReply's AI.
+        extras: { setup: {}, featureType: coexistence ? "whatsapp_business_app_onboarding" : "", sessionInfoVersion: "3" },
       }
     );
   }
@@ -106,7 +113,7 @@ export default function ConnectWhatsApp({ connectedNumber }) {
   if (!FB_APP_ID) {
     return (
       <div className="rounded-2xl border border-line bg-surface p-5 text-sm text-muted">
-        WhatsApp connect abhi set up nahi hua.
+        WhatsApp connect isn't set up yet.
       </div>
     );
   }
@@ -121,24 +128,37 @@ export default function ConnectWhatsApp({ connectedNumber }) {
         </span>
         <div>
           <p className="text-base font-semibold text-text">WhatsApp</p>
-          <p className="text-sm text-muted">{connectedNumber ? "Connected: " + connectedNumber : "Apna WhatsApp number connect karein"}</p>
+          <p className="text-sm text-muted">{connectedNumber ? "Connected: +" + String(connectedNumber).replace(/\D/g, "").replace(/^00/, "") : "Connect your WhatsApp Business number"}</p>
         </div>
       </div>
 
-      <button
-        onClick={launch}
-        disabled={busy}
-        className="mt-5 inline-flex items-center gap-2 rounded-xl bg-[#25D366] px-5 py-2.5 text-sm font-semibold text-white transition hover:opacity-90 disabled:opacity-60"
-      >
-        {busy ? "Connecting…" : connectedNumber ? "Reconnect WhatsApp" : "Connect WhatsApp"}
-      </button>
+      <div className="mt-5 grid gap-3 sm:grid-cols-2">
+        <button
+          onClick={() => launch(true)}
+          disabled={busy}
+          className="flex flex-col items-start gap-1 rounded-xl border-2 border-[#25D366] bg-[#25D366]/5 p-4 text-left transition hover:bg-[#25D366]/10 disabled:opacity-60"
+        >
+          <span className="text-sm font-semibold text-text">I use the WhatsApp Business app on this number</span>
+          <span className="text-xs text-muted">Recommended. Keep using the app on your phone — your chats and contacts stay, and the AI replies too. You'll scan a QR code in the app.</span>
+        </button>
+        <button
+          onClick={() => launch(false)}
+          disabled={busy}
+          className="flex flex-col items-start gap-1 rounded-xl border border-line p-4 text-left transition hover:bg-black/[0.02] disabled:opacity-60"
+        >
+          <span className="text-sm font-semibold text-text">New number / not on WhatsApp</span>
+          <span className="text-xs text-muted">The number will work only through NextReply (it can't be used in the WhatsApp app at the same time).</span>
+        </button>
+      </div>
+
+      {busy && <p className="mt-3 text-sm text-muted">Connecting… finish the steps in the Meta window.</p>}
 
       {msg && (
         <p className={"mt-3 text-sm " + (status === "done" ? "text-[#1a8f4c]" : status === "error" ? "text-red-600" : "text-muted")}>{msg}</p>
       )}
 
       <p className="mt-4 text-xs text-muted">
-        Ek Meta popup khulega jahan aap apna WhatsApp Business number verify karke connect karoge. Koi app delete nahi hogi.
+        A secure Meta window opens where you log in with Facebook, choose your business and verify your WhatsApp number.
       </p>
     </div>
   );

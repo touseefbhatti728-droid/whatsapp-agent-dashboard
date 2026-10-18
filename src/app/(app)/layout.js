@@ -3,7 +3,8 @@ import { createClient } from "@/lib/supabase/server";
 import SignOutButton from "@/components/SignOutButton";
 import NavItem from "@/components/NavItem";
 import MobileNav from "@/components/MobileNav";
-import PushBell from "@/components/PushBell";
+import NotificationBell from "@/components/NotificationBell";
+import Toaster from "@/components/Toaster";
 import { getBranding } from "@/lib/branding";
 
 const S = { width: 19, height: 19, viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: 1.75, strokeLinecap: "round", strokeLinejoin: "round" };
@@ -22,6 +23,7 @@ const IcRobot = (<svg {...S}><rect x="4" y="7" width="16" height="12" rx="3"/><p
 const IcTag = (<svg {...S}><path d="M20.59 13.41 13.42 20.6a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/><path d="M7 7h.01"/></svg>);
 const IcBook = (<svg {...S}><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>);
 const IcUser = (<svg {...S}><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>);
+const IcBell = (<svg {...S}><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9M13.73 21a2 2 0 0 1-3.46 0"/></svg>);
 const IcMega = (<svg {...S}><path d="M3 11v2a1 1 0 0 0 1 1h2l4 4V6L6 10H4a1 1 0 0 0-1 1z"/><path d="M14 8a4 4 0 0 1 0 8M18 5a8 8 0 0 1 0 14"/></svg>);
 
 export default async function AppLayout({ children }) {
@@ -34,8 +36,14 @@ export default async function AppLayout({ children }) {
   const branding = await getBranding();
   const appName = branding.app_name;
   let showChat = true;
+  let aiPaused = null; // null = AI running; otherwise a reason string for the banner
   if (!isAdmin) {
-    const { data: myBiz } = await supabase.from("businesses").select("plan").eq("owner_id", user.id).order("created_at", { ascending: true }).limit(1).maybeSingle();
+    const { data: myBiz } = await supabase.from("businesses").select("plan, sub_status").eq("owner_id", user.id).order("created_at", { ascending: true }).limit(1).maybeSingle();
+    if (myBiz && !["active", "trialing"].includes(myBiz.sub_status)) {
+      aiPaused = myBiz.sub_status === "past_due" ? "Your last payment failed, so your AI receptionist is paused. Update your card to switch it back on."
+        : myBiz.sub_status === "cancelled" ? "Your subscription has ended, so your AI receptionist is paused. Pick a plan to switch it back on."
+        : "Your AI receptionist is off. Start your 7-day free trial to switch it on.";
+    }
     if (myBiz) {
       const { data: pl } = await supabase.from("plans").select("chat_history").eq("name", myBiz.plan).maybeSingle();
       showChat = pl?.chat_history !== false;
@@ -77,6 +85,7 @@ export default async function AppLayout({ children }) {
         <NavItem href="/marketing" label="Marketing" icon={IcMega} />
         <NavItem href="/insights" label="Insights" icon={IcChart} />
         <NavItem href="/settings" label="Settings" icon={IcCog} />
+        <NavItem href="/notifications" label="Notifications" icon={IcBell} />
         <NavItem href="/integrations" label="Integrations" icon={IcPlug} />
         <NavItem href="/billing" label="Billing" icon={IcCard} />
       </nav>
@@ -138,15 +147,25 @@ export default async function AppLayout({ children }) {
           </div>
           <div className="flex items-center gap-3">
             <span className="pill bg-brand-tint text-brand-dark">{isAdmin ? "Admin" : "Owner"}</span>
-            <PushBell />
+            <NotificationBell />
           </div>
         </div>
 
         {/* Main */}
         <main className="flex-1 px-5 pb-16 pt-20 md:px-12 md:pt-8">
-          <div className="mx-auto max-w-5xl">{children}</div>
+          <div className="mx-auto max-w-5xl">
+            {aiPaused && (
+              <div className="mb-6 flex flex-wrap items-center gap-3 rounded-2xl border border-amber-300/60 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+                <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-amber-400/30">!</span>
+                <p className="min-w-0 flex-1">{aiPaused}</p>
+                <a href="/billing" className="btn-brand shrink-0 px-4 py-2 text-sm">Go to Billing</a>
+              </div>
+            )}
+            {children}
+          </div>
         </main>
       </div>
+      <Toaster />
     </div>
   );
 }

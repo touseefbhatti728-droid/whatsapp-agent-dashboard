@@ -1,6 +1,7 @@
 "use server";
 
 import { createClient } from "@/lib/supabase/server";
+import { notifyBusiness } from "@/lib/notify";
 
 const GV = process.env.FB_GRAPH_VERSION || "v21.0";
 
@@ -8,7 +9,7 @@ const GV = process.env.FB_GRAPH_VERSION || "v21.0";
 // It exchanges the one-time code for a long-lived business token, subscribes our
 // app to the business's WhatsApp webhooks, and stores the number + token on the
 // user's business row so the AI can send/receive on their behalf.
-export async function connectWhatsApp({ code, phoneNumberId, wabaId }) {
+export async function connectWhatsApp({ code, phoneNumberId, wabaId, coexistence }) {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return { ok: false, error: "Not signed in" };
@@ -47,8 +48,9 @@ export async function connectWhatsApp({ code, phoneNumberId, wabaId }) {
     } catch (_) {}
   }
 
-  // 3) Register the phone number for Cloud API (best-effort; a PIN may already be set)
-  if (phoneNumberId) {
+  // 3) Register the phone number for Cloud API (best-effort; a PIN may already be set).
+  //    Coexistence numbers are already registered through the WhatsApp Business app — skip.
+  if (phoneNumberId && !coexistence) {
     try {
       await fetch(`https://graph.facebook.com/${GV}/${phoneNumberId}/register`, {
         method: "POST",
@@ -72,6 +74,19 @@ export async function connectWhatsApp({ code, phoneNumberId, wabaId }) {
     } catch (_) {}
   }
 
+  // 4b) Coexistence: ask Meta to sync contacts + recent chat history from the app (best-effort)
+  if (phoneNumberId && coexistence) {
+    for (const sync_type of ["smb_app_state_sync", "history"]) {
+      try {
+        await fetch(`https://graph.facebook.com/${GV}/${phoneNumberId}/smb_app_data`, {
+          method: "POST",
+          headers: { Authorization: `Bearer ${accessToken}`, "Content-Type": "application/json" },
+          body: JSON.stringify({ messaging_product: "whatsapp", sync_type }),
+        });
+      } catch (_) {}
+    }
+  }
+
   // 5) Save on the user's business row
   const { data: biz } = await supabase
     .from("businesses")
@@ -86,10 +101,22 @@ export async function connectWhatsApp({ code, phoneNumberId, wabaId }) {
     meta_phone_number_id: phoneNumberId || null,
     meta_access_token: accessToken,
   };
-  if (displayNumber) update.whatsapp_number = displayNumber;
+  // Store digits only (e.g. "31687224652") — exactly how Meta sends it in webhooks.
+  if (displayNumber) update.whatsapp_number = String(displayNumber).replace(/\D/g, "");
 
   const { error } = await supabase.from("businesses").update(update).eq("id", biz.id);
   if (error) return { ok: false, error: error.message };
+
+  // Owner alert (notification centre + push). Never blocks the connect result.
+  try {
+    await notifyBusiness(biz.id, {
+      type: "whatsapp",
+      title: "WhatsApp connected",
+      body: `${displayNumber || "Your number"} is live — your AI now replies to customers.`,
+      url: "/connect-whatsapp",
+      tag: "whatsapp-connected",
+    });
+  } catch (_) {}
 
   return { ok: true, phoneNumberId: phoneNumberId || null, phoneNumber: displayNumber, verifiedName };
 }

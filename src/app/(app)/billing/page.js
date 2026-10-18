@@ -1,12 +1,14 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import StripeUpgradeButton from "@/components/StripeUpgradeButton";
+import StripeUpgradeButton, { ManageBillingButton } from "@/components/StripeUpgradeButton";
+import BillingToast from "@/components/BillingToast";
+import { Suspense } from "react";
 
 // Displayed prices (USD) — charged amount comes from Stripe.
 const USD_PRICE = { starter: 29, pro: 59, business: 99 };
 
 function fmtDate(ts) { return ts ? new Date(ts).toLocaleDateString(undefined, { day: "numeric", month: "short", year: "numeric" }) : "—"; }
-const STATUS_LABEL = { trialing: "Trialing", active: "Active", past_due: "Past due", cancelled: "Cancelled" };
+const STATUS_LABEL = { trialing: "Free trial", active: "Active", past_due: "Payment failed", cancelled: "Cancelled", inactive: "Not started" };
 
 const IcChat = (<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>);
 const IcSpark = (<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M12 3l1.9 4.8L18.5 9l-4.6 1.2L12 15l-1.9-4.8L5.5 9l4.6-1.2z"/></svg>);
@@ -32,7 +34,7 @@ export default async function BillingPage() {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect("/login");
 
-  const { data: businesses } = await supabase.from("businesses").select("id, name, plan, sub_status, renews_at").order("created_at", { ascending: true });
+  const { data: businesses } = await supabase.from("businesses").select("id, name, plan, sub_status, renews_at, stripe_customer_id").order("created_at", { ascending: true });
   const biz = businesses?.[0];
   const { data: plans } = await supabase.from("plans").select("name, price, interval, features, monthly_booking_limit, chat_history, sort").order("sort");
 
@@ -45,9 +47,14 @@ export default async function BillingPage() {
     limit = cur ? cur.monthly_booking_limit : null;
   }
   const pct = limit ? Math.min(100, Math.round((used / limit) * 100)) : 0;
+  // A real Stripe subscription exists (old no-card "trialing" defaults don't count).
+  const hasSub = !!(biz && biz.stripe_customer_id && ["trialing", "active", "past_due"].includes(biz.sub_status));
+  const trialEligible = !!(biz && !biz.stripe_customer_id);
+  const btnLabel = trialEligible ? "Start 7-day free trial" : hasSub ? "Switch plan" : "Subscribe";
 
   return (
     <div className="space-y-8">
+      <Suspense fallback={null}><BillingToast /></Suspense>
       <div>
         <h1 className="page-title">Billing</h1>
         <p className="page-sub">Your current plan, usage, and available plans.</p>
@@ -58,12 +65,19 @@ export default async function BillingPage() {
           <div className="flex flex-wrap items-center justify-between gap-4">
             <div>
               <p className="text-xs font-medium uppercase tracking-wide text-muted">Current plan</p>
-              <p className="mt-1 text-xl font-bold text-text">{biz.plan || "—"}</p>
-              <p className="mt-1 text-sm text-muted">Renews on {fmtDate(biz.renews_at)}</p>
+              <p className="mt-1 text-xl font-bold text-text">{hasSub ? (biz.plan || "—") : "No plan yet"}</p>
+              <p className="mt-1 text-sm text-muted">
+                {biz.sub_status === "trialing" && biz.stripe_customer_id ? `Free trial — first payment on ${fmtDate(biz.renews_at)}`
+                  : biz.sub_status === "active" ? `Renews on ${fmtDate(biz.renews_at)}`
+                  : biz.sub_status === "past_due" ? "Payment failed — your AI is paused until the card is updated"
+                  : biz.sub_status === "cancelled" ? "Subscription ended — your AI is paused"
+                  : "Start your 7-day free trial to switch on your AI receptionist"}
+              </p>
             </div>
             <span className={`pill ${biz.sub_status === "active" ? "bg-brand-tint text-brand-dark" : biz.sub_status === "past_due" || biz.sub_status === "cancelled" ? "bg-red-50 text-red-600" : "bg-canvas text-muted"}`}>
               {STATUS_LABEL[biz.sub_status] || biz.sub_status || "—"}
             </span>
+            {biz.stripe_customer_id && <ManageBillingButton />}
           </div>
           <div className="mt-5 border-t border-line pt-5">
             <div className="flex items-center justify-between text-sm">
@@ -84,7 +98,7 @@ export default async function BillingPage() {
         <div className="grid items-start gap-4 lg:grid-cols-3">
           {(plans || []).map((p) => {
             const meta = PLAN_META[String(p.name).toLowerCase()] || { tagline: "", header: "What you get", icon: IcChat };
-            const current = biz?.plan === p.name;
+            const current = hasSub && String(biz?.plan || "").toLowerCase() === String(p.name).toLowerCase();
             const popular = String(p.name).toLowerCase() === "pro";
             const features = [bookingsLabel(p), ...planFeatures(p)];
             const priceUsd = USD_PRICE[String(p.name).toLowerCase()] ?? p.price;
@@ -104,7 +118,7 @@ export default async function BillingPage() {
                       <li key={i} className="flex gap-2.5 text-sm text-white/85"><Check dark />{f}</li>
                     ))}
                   </ul>
-                  <StripeUpgradeButton plan={p.name} current={current} popular />
+                  <StripeUpgradeButton plan={p.name} current={current} popular label={btnLabel} />
                 </div>
               );
             }
@@ -125,12 +139,12 @@ export default async function BillingPage() {
                     <li key={i} className="flex gap-2.5 text-sm text-text/80"><Check />{f}</li>
                   ))}
                 </ul>
-                <StripeUpgradeButton plan={p.name} current={current} />
+                <StripeUpgradeButton plan={p.name} current={current} label={btnLabel} />
               </div>
             );
           })}
         </div>
-        <p className="mt-4 text-xs text-muted">Upgrade opens a secure checkout. Your plan activates automatically once payment is confirmed.</p>
+        <p className="mt-4 text-xs text-muted">{trialEligible ? "7 days free, then billed monthly. A card is required to start; cancel anytime before the trial ends and you won’t be charged." : "Secure checkout by Stripe. Change plan, update your card or cancel anytime from Manage subscription."}</p>
       </div>
     </div>
   );

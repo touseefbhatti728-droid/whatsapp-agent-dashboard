@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import ConnectWhatsApp from "@/components/ConnectWhatsApp";
+import WhatsAppSetupGuide from "@/components/WhatsAppSetupGuide";
 
 export default async function ConnectWhatsAppPage() {
   const supabase = await createClient();
@@ -19,9 +20,10 @@ export default async function ConnectWhatsAppPage() {
     <div className="space-y-6">
       <div>
         <h1 className="page-title">Connect WhatsApp</h1>
-        <p className="page-sub">Apna WhatsApp Business number automatically connect karein — koi app delete kiye bina.</p>
+        <p className="page-sub">Connect the WhatsApp number your customers already message. Your AI receptionist starts replying right away.</p>
       </div>
       <ConnectWhatsApp connectedNumber={biz?.whatsapp_number || null} />
+      <WhatsAppSetupGuide />
     </div>
   );
 }
