@@ -14,9 +14,11 @@ export default function SignOutButton() {
   return (
     <button
       onClick={signOut}
-      className="w-full rounded-xl border border-white/10 px-3 py-2 text-sm font-medium text-white/70 transition hover:bg-white/5 hover:text-white"
+      title="Sign out"
+      aria-label="Sign out"
+      className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-muted transition hover:bg-canvas hover:text-text"
     >
-      Sign out
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9" /></svg>
     </button>
   );
 }

@@ -90,9 +90,9 @@ export default async function AppLayout({ children }) {
   const initial = (user.email || "?").charAt(0).toUpperCase();
 
   const Group = ({ title, children: items }) => (
-    <div className="mt-6 first:mt-7">
-      <p className="px-3 pb-1.5 text-[10.5px] font-semibold uppercase tracking-[0.16em] text-white/35">{title}</p>
-      <nav className="space-y-1">{items}</nav>
+    <div className="mt-5 first:mt-4">
+      <p className="px-2.5 pb-1.5 text-[10.5px] font-semibold uppercase tracking-[0.12em] text-muted/80">{title}</p>
+      <nav className="space-y-0.5">{items}</nav>
     </div>
   );
 
@@ -129,9 +129,9 @@ export default async function AppLayout({ children }) {
       </Group>
 
       {isAdmin && (
-        <div className="mt-7">
-          <p className="px-3 pb-2 text-[11px] font-semibold uppercase tracking-[0.16em] text-white/40">Admin</p>
-          <nav className="space-y-1">
+        <div className="mt-5 border-t border-line pt-4">
+          <p className="px-2.5 pb-1.5 text-[10.5px] font-semibold uppercase tracking-[0.12em] text-brand">Admin</p>
+          <nav className="space-y-0.5">
             <NavItem href="/admin" label="Overview" icon={IcGrid} exact />
             <NavItem href="/admin/clients" label="Clients" icon={IcUsers} />
             <NavItem href="/admin/bookings" label="All bookings" icon={IcList} />
@@ -146,52 +146,57 @@ export default async function AppLayout({ children }) {
   );
 
   const userBox = (
-    <div className="space-y-3">
-      <div className="flex items-center gap-2.5 rounded-xl bg-white/[0.06] px-2.5 py-2.5">
-        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-brand text-xs font-semibold text-white">{initial}</div>
-        <div className="min-w-0">
-          <p className="truncate text-[12.5px] font-medium text-white">{user.email}</p>
-          <p className="text-[11px] text-white/45">{isAdmin ? "Admin" : "Owner"}</p>
-        </div>
+    <div className="flex items-center gap-2.5 rounded-xl border border-line bg-canvas/60 p-2">
+      <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-ink text-xs font-semibold text-white">{initial}</div>
+      <div className="min-w-0 flex-1">
+        <p className="truncate text-[12.5px] font-medium text-text">{user.email}</p>
+        <p className="text-[11px] text-muted">{isAdmin ? "Admin" : "Owner"}</p>
       </div>
       <SignOutButton />
     </div>
   );
 
+  // Business switcher-style header: logo + the business you're working on + its plan
+  const brandBlock = (
+    <div className="flex items-center gap-2.5 px-1">
+      <div className="logo-mark h-9 w-9 text-[15px]">{appName.charAt(0)}</div>
+      <div className="min-w-0">
+        <p className="truncate text-[14px] font-semibold tracking-tight text-text">{appName}</p>
+        <p className="truncate text-[11.5px] text-muted">{myBiz?.name || (isAdmin ? "Admin workspace" : "Your business")}{myBiz?.plan ? ` · ${myBiz.plan}` : ""}</p>
+      </div>
+    </div>
+  );
+
   return (
-    <div className="flex min-h-screen bg-[#f6f4ef]">
-      {/* Desktop sidebar */}
-      <aside className="hidden w-[248px] shrink-0 flex-col justify-between border-r border-black/5 bg-ink p-4 md:flex">
-        <div>
-          <div className="flex items-center gap-2.5 px-2 py-2">
-            <div className="logo-mark h-9 w-9 text-[15px]">{appName.charAt(0)}</div>
-            <span className="truncate font-bold tracking-tight text-white">{appName}</span>
-          </div>
-          {navContent}
-        </div>
-        {userBox}
+    <div className="flex min-h-screen bg-canvas">
+      {/* Desktop sidebar — light, quiet, grouped */}
+      <aside className="sticky top-0 hidden h-screen w-[244px] shrink-0 flex-col border-r border-line bg-surface md:flex">
+        <div className="border-b border-line px-4 py-4">{brandBlock}</div>
+        <div className="flex-1 overflow-y-auto px-3 pb-4">{navContent}</div>
+        <div className="border-t border-line p-3">{userBox}</div>
       </aside>
 
       {/* Mobile top bar + slide-out drawer */}
-      <MobileNav appName={appName} navContent={navContent} userBox={userBox} />
+      <MobileNav appName={appName} brandBlock={brandBlock} navContent={navContent} userBox={userBox} />
 
-      {/* Right side: status bar + main */}
-      <div className="flex flex-1 flex-col">
-        {/* Desktop status bar */}
-        <div className="sticky top-0 z-20 hidden items-center justify-between border-b border-black/[0.06] bg-[#f6f4ef]/80 px-12 py-3.5 backdrop-blur md:flex">
+      {/* Right side: top bar + main */}
+      <div className="flex min-w-0 flex-1 flex-col">
+        {/* Desktop top bar */}
+        <div className="sticky top-0 z-20 hidden h-14 items-center justify-between border-b border-line bg-surface/85 px-8 backdrop-blur md:flex">
           <div className="flex items-center gap-2 text-[13px] text-muted">
-            <span className="text-brand">{IcCalendar}</span>
+            <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-brand-tint text-brand">{IcCalendar}</span>
             <span>Today: <b className="font-semibold text-text">{apptsToday}</b> appointment{apptsToday === 1 ? "" : "s"}</span>
           </div>
-          <div className="flex items-center gap-3">
-            <span className="pill bg-brand-tint text-brand-dark">{isAdmin ? "Admin" : "Owner"}</span>
+          <div className="flex items-center gap-2.5">
+            <a href="/calendar?new=1" className="btn-ghost h-9 px-3 py-0 text-[13px]">+ New appointment</a>
+            <span className={`pill ${isAdmin ? "bg-ink text-white" : "bg-brand-tint text-brand-dark"}`}>{isAdmin ? "Admin" : "Owner"}</span>
             <NotificationBell />
           </div>
         </div>
 
         {/* Main */}
-        <main className="flex-1 px-5 pb-16 pt-20 md:px-12 md:pt-8">
-          <div className="mx-auto max-w-5xl">
+        <main className="flex-1 px-4 pb-16 pt-20 sm:px-6 md:px-8 md:pt-8">
+          <div className="mx-auto max-w-6xl">
             {managing && (
               <div className="mb-6 flex flex-wrap items-center gap-3 rounded-2xl border border-brand/30 bg-brand-tint px-4 py-3 text-sm text-brand-dark">
                 <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-brand text-xs font-bold text-white">A</span>

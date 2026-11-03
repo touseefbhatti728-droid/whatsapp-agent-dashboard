@@ -94,7 +94,7 @@ export default async function DashboardPage() {
     { label: "Add your services", href: "/services", done: hasServices },
     { label: "Set up your AI front desk", href: "/ai-front-desk", done: frontDeskDone },
     { label: "Connect your WhatsApp number", href: "/connect-whatsapp", done: waConnected },
-    { label: "Get your first booking on WhatsApp", href: "/conversations", done: hasBookings },
+    { label: "Get your first booking on WhatsApp", href: "/calendar", done: hasBookings },
   ];
   const doneCount = steps.filter((s) => s.done).length;
   const pct = Math.round((doneCount / steps.length) * 100);
@@ -102,10 +102,11 @@ export default async function DashboardPage() {
   return (
     <div className="space-y-8">
       {/* Header */}
-      <div className="flex flex-wrap items-center justify-between gap-4">
+      <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
-          <h1 className="page-title">Today at {businessTitle}</h1>
-          <p className="page-sub">Everything you need for a calm working day.</p>
+          <p className="text-[13px] font-medium text-muted">{new Date().toLocaleDateString("en-GB", { timeZone: tz, weekday: "long", day: "numeric", month: "long" })}</p>
+          <h1 className="page-title mt-0.5">{businessTitle}</h1>
+          <p className="page-sub">Here's how your AI receptionist is doing today.</p>
         </div>
         <Link href="/calendar?new=1" className="btn-brand inline-flex items-center gap-2">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"><path d="M12 5v14M5 12h14" /></svg>
@@ -125,70 +126,53 @@ export default async function DashboardPage() {
           sub={`${upcomingCount} upcoming in total`} />
       </section>
 
-      {/* WhatsApp booking link */}
-      <BookingLink link={bookingLink} connected={waConnected} />
-
-      {/* Setup — dark banner + progress + light step cards */}
+      {/* Setup checklist — numbered steps, one clear next action */}
       {showSetup && (
-        <section className="overflow-hidden rounded-[20px] bg-ink text-white shadow-[0_24px_48px_-28px_rgba(17,24,39,0.5)]">
-          <div className="flex flex-wrap items-center justify-between gap-3 px-5 py-4">
+        <section className="card overflow-hidden">
+          <div className="flex flex-wrap items-center justify-between gap-3 border-b border-line px-5 py-4">
+            <div>
+              <h2 className="text-[15px] font-semibold text-text">Get your AI receptionist live</h2>
+              <p className="text-xs text-muted">{doneCount} of {steps.length} steps done · about 10 minutes in total</p>
+            </div>
             <div className="flex items-center gap-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-white/10">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><rect x="4" y="7" width="16" height="12" rx="3" /><path d="M12 3v4M9 13h.01M15 13h.01" /></svg>
+              <div className="h-2 w-40 overflow-hidden rounded-full bg-canvas">
+                <div className="h-full rounded-full bg-brand transition-all" style={{ width: `${pct}%` }} />
               </div>
-              <div>
-                <h2 className="text-sm font-semibold">Launch your AI receptionist</h2>
-                <p className="text-xs text-white/50">{doneCount} of {steps.length} steps complete</p>
-              </div>
-            </div>
-            <Link href="/ai-front-desk" className="btn-brand">Continue setup</Link>
-          </div>
-          <div className="px-5 pb-4">
-            <div className="h-1.5 w-full overflow-hidden rounded-full bg-white/10">
-              <div className="h-full rounded-full bg-brand transition-all" style={{ width: `${pct}%` }} />
+              <span className="text-xs font-semibold text-brand-dark">{pct}%</span>
             </div>
           </div>
-          <div className="grid gap-3 bg-surface p-5 sm:grid-cols-2">
-            {steps.map((s) => (
-              <Link key={s.label} href={s.href} className="flex items-center gap-3 rounded-xl border border-line bg-canvas/40 p-3.5 transition hover:border-brand/40 hover:bg-brand-tint/40">
-                <span className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full border ${s.done ? "border-brand bg-brand text-white" : "border-line text-muted"}`}>
-                  {s.done
-                    ? <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6 9 17l-5-5" /></svg>
-                    : <span className="h-1.5 w-1.5 rounded-full bg-current" />}
-                </span>
-                <span className={`text-sm ${s.done ? "text-muted line-through" : "font-medium text-text"}`}>{s.label}</span>
-                <svg className="ml-auto text-muted" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 18l6-6-6-6" /></svg>
-              </Link>
-            ))}
-          </div>
+          <ol className="grid divide-y divide-line sm:grid-cols-2 sm:divide-y-0">
+            {steps.map((s, i) => {
+              const next = !s.done && steps.slice(0, i).every((x) => x.done);
+              return (
+                <li key={s.label} className="sm:border-b sm:border-line sm:[&:nth-child(odd)]:border-r">
+                  <Link href={s.href} className={`flex items-center gap-3 px-5 py-4 transition hover:bg-canvas/70 ${next ? "bg-brand-tint/40" : ""}`}>
+                    <span className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-xs font-bold ${s.done ? "bg-emerald-500 text-white" : next ? "bg-brand text-white" : "border border-line text-muted"}`}>
+                      {s.done ? <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6 9 17l-5-5" /></svg> : i + 1}
+                    </span>
+                    <span className="min-w-0 flex-1">
+                      <span className={`block text-sm ${s.done ? "text-muted line-through" : "font-medium text-text"}`}>{s.label}</span>
+                      {next && <span className="block text-xs font-medium text-brand-dark">Next step</span>}
+                    </span>
+                    <svg className="shrink-0 text-muted" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 18l6-6-6-6" /></svg>
+                  </Link>
+                </li>
+              );
+            })}
+          </ol>
         </section>
       )}
 
-      {/* Stat tiles */}
-      <section className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
+      {/* Numbers */}
+      <section className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         <Stat label="Appointments today" value={todayCount} />
         <Stat label="This month" value={monthCount} />
-        <Stat label="Total bookings" value={totalCount} />
+        <Stat label="All-time bookings" value={totalCount} />
         <Stat label="Upcoming" value={upcomingCount} accent />
       </section>
 
-      {/* Control panel */}
-      <section>
-        <div className="mb-3">
-          <h2 className="text-sm font-semibold text-text">Control panel</h2>
-          <p className="text-xs text-muted">Your main actions in one place.</p>
-        </div>
-        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-          <Action href="/calendar?new=1" title="New appointment" desc="Add a client, service and time."
-            icon={<><rect x="3" y="4" width="18" height="16" rx="3" /><path d="M8 2v4M16 2v4M3 10h18" /></>} />
-          <Action href="/ai-front-desk" title="AI front desk" desc="Set your assistant, hours and handover."
-            icon={<><rect x="4" y="7" width="16" height="12" rx="3" /><path d="M12 3v4M9 13h.01M15 13h.01" /></>} />
-          <Action href="/services" title="Services" desc="Add your services and prices."
-            icon={<><path d="M20.59 13.41 13.42 20.6a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z" /><path d="M7 7h.01" /></>} />
-          <Action href="/conversations" title="Conversations" desc="Read every WhatsApp chat."
-            icon={<path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />} />
-        </div>
-      </section>
+      {/* WhatsApp booking link */}
+      <BookingLink link={bookingLink} connected={waConnected} />
 
       <div className="grid gap-4 lg:grid-cols-[1.4fr_1fr]">
       {/* Upcoming appointments */}
@@ -273,9 +257,9 @@ function StatusCard({ href, label, value, sub, ok }) {
 
 function Stat({ label, value, accent }) {
   return (
-    <div className="stat p-4 md:p-6">
+    <div className="stat">
       <div className="text-[13px] font-medium text-muted">{label}</div>
-      <div className={`mt-2 text-[24px] font-bold leading-none tracking-tight md:text-[30px] ${accent ? "text-brand" : "text-text"}`}>{value}</div>
+      <div className={`mt-1.5 text-[26px] font-semibold leading-none tracking-tight ${accent ? "text-brand" : "text-text"}`}>{value}</div>
     </div>
   );
 }

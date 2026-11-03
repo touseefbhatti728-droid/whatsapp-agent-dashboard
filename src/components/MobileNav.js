@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { usePathname } from "next/navigation";
 
-export default function MobileNav({ appName, navContent, userBox }) {
+export default function MobileNav({ appName, brandBlock, navContent, userBox }) {
   const [open, setOpen] = useState(false);
   const pathname = usePathname();
 
@@ -21,15 +21,15 @@ export default function MobileNav({ appName, navContent, userBox }) {
   return (
     <>
       {/* Top bar (mobile only) */}
-      <header className="fixed inset-x-0 top-0 z-30 flex items-center justify-between border-b border-black/5 bg-ink px-4 py-3 md:hidden">
+      <header className="fixed inset-x-0 top-0 z-30 flex h-14 items-center justify-between border-b border-line bg-surface/95 px-4 backdrop-blur md:hidden">
         <div className="flex items-center gap-2">
-          <div className="logo-mark h-7 w-7 text-xs">{appName.charAt(0)}</div>
-          <span className="truncate text-sm font-bold text-white">{appName}</span>
+          <div className="logo-mark h-8 w-8 text-xs">{appName.charAt(0)}</div>
+          <span className="truncate text-sm font-semibold text-text">{appName}</span>
         </div>
         <button
           onClick={() => setOpen(true)}
           aria-label="Open menu"
-          className="flex h-9 w-9 items-center justify-center rounded-lg text-white hover:bg-white/10"
+          className="flex h-9 w-9 items-center justify-center rounded-lg text-text hover:bg-canvas"
         >
           <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M3 6h18M3 12h18M3 18h18"/></svg>
         </button>
@@ -39,31 +39,26 @@ export default function MobileNav({ appName, navContent, userBox }) {
       {open && (
         <div
           onClick={() => setOpen(false)}
-          className="fixed inset-0 z-40 bg-black/50 md:hidden"
+          className="fixed inset-0 z-40 bg-black/30 backdrop-blur-[1px] md:hidden"
         />
       )}
 
       {/* Slide-out drawer */}
       <aside
-        className={`fixed inset-y-0 left-0 z-50 flex w-[270px] max-w-[82%] flex-col justify-between overflow-y-auto bg-ink p-4 transition-transform duration-300 md:hidden ${open ? "translate-x-0" : "-translate-x-full"}`}
+        className={`fixed inset-y-0 left-0 z-50 flex w-[280px] max-w-[85%] flex-col bg-surface shadow-pop transition-transform duration-300 md:hidden ${open ? "translate-x-0" : "-translate-x-full"}`}
       >
-        <div>
-          <div className="flex items-center justify-between px-2 py-2">
-            <div className="flex items-center gap-2.5">
-              <div className="logo-mark h-9 w-9 text-[15px]">{appName.charAt(0)}</div>
-              <span className="truncate font-bold tracking-tight text-white">{appName}</span>
-            </div>
-            <button
-              onClick={() => setOpen(false)}
-              aria-label="Close menu"
-              className="flex h-8 w-8 items-center justify-center rounded-lg text-white hover:bg-white/10"
-            >
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg>
-            </button>
-          </div>
-          {navContent}
+        <div className="flex items-center justify-between border-b border-line px-4 py-3.5">
+          {brandBlock}
+          <button
+            onClick={() => setOpen(false)}
+            aria-label="Close menu"
+            className="flex h-8 w-8 items-center justify-center rounded-lg text-muted hover:bg-canvas hover:text-text"
+          >
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg>
+          </button>
         </div>
-        <div className="pt-4">{userBox}</div>
+        <div className="flex-1 overflow-y-auto px-3 pb-4">{navContent}</div>
+        <div className="border-t border-line p-3">{userBox}</div>
       </aside>
     </>
   );

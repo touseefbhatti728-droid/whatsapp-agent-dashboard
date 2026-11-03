@@ -11,27 +11,22 @@ export default function NavItem({ href, label, icon, exact, badge }) {
   return (
     <Link
       href={href}
-      className={`group navlink relative ${
+      aria-current={active ? "page" : undefined}
+      className={`group navlink ${
         active
-          ? "bg-white/[0.08] text-white font-semibold ring-1 ring-inset ring-white/[0.07]"
-          : "text-white/70 hover:bg-white/[0.05] hover:text-white"
+          ? "bg-brand-tint font-semibold text-brand-dark"
+          : "text-body hover:bg-canvas hover:text-text"
       }`}
     >
-      {active && (
-        <span
-          className="absolute left-0 top-1/2 h-5 w-[3px] -translate-y-1/2 rounded-r-full bg-brand"
-          style={{ boxShadow: "0 0 10px rgb(var(--brand-rgb) / 0.75)" }}
-        />
-      )}
       {icon && (
-        <span className={`shrink-0 transition-colors ${active ? "text-brand" : "text-white/50 group-hover:text-white/85"}`}>
+        <span className={`shrink-0 transition-colors ${active ? "text-brand" : "text-muted group-hover:text-text"}`}>
           {icon}
         </span>
       )}
-      <span>{label}</span>
+      <span className="truncate">{label}</span>
       {/* Locked by plan: shows which plan unlocks it and links to Billing */}
       {badge && (
-        <span className="ml-auto flex items-center gap-1 rounded-md bg-white/10 px-1.5 py-0.5 text-[10px] font-semibold text-white/70">
+        <span className="ml-auto flex items-center gap-1 rounded-md border border-line bg-canvas px-1.5 py-0.5 text-[10px] font-semibold text-muted">
           <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><rect x="4" y="11" width="16" height="10" rx="2" /><path d="M8 11V7a4 4 0 0 1 8 0v4" /></svg>
           {badge}
         </span>
