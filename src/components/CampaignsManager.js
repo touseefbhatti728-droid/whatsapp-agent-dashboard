@@ -1,5 +1,7 @@
 "use client";
 
+import ConfirmButton from "@/components/ConfirmButton";
+
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { seedStarterCampaigns, addCampaign, updateCampaign, toggleCampaign, deleteCampaign } from "@/lib/campaign-actions";
@@ -85,7 +87,7 @@ function Card({ c, onChanged }) {
 
   async function toggle() { setBusy(true); await toggleCampaign({ id: c.id, active: !c.active }); setBusy(false); onChanged(); }
   async function save() { setBusy(true); await updateCampaign({ id: c.id, name, message }); setBusy(false); setEditing(false); onChanged(); }
-  async function remove() { if (!confirm(`Delete "${c.name}"?`)) return; setBusy(true); await deleteCampaign(c.id); setBusy(false); onChanged(); }
+  async function remove() { setBusy(true); await deleteCampaign(c.id); setBusy(false); onChanged(); }
 
   return (
     <div className={`card p-5 ${c.active ? "ring-1 ring-brand/40" : ""}`}>
@@ -119,7 +121,7 @@ function Card({ c, onChanged }) {
           ) : (
             <>
               <button onClick={() => setEditing(true)} className="font-medium text-muted hover:text-text">Edit</button>
-              <button onClick={remove} disabled={busy} className="font-medium text-muted hover:text-red-500">Delete</button>
+              <ConfirmButton onConfirm={remove} disabled={busy} label="Delete" confirmLabel="Yes, delete" className="font-medium text-muted hover:text-red-500" />
             </>
           )}
         </div>

@@ -7,6 +7,7 @@ import { getNotifications, markNotificationRead, markAllNotificationsRead } from
 import { usePush } from "@/lib/use-push";
 import { toast } from "@/lib/toast";
 import { NotifIcon, timeAgo } from "@/components/notif-meta";
+import { createClient } from "@/lib/supabase/client";
 
 const POLL_MS = 60000;
 
@@ -106,7 +107,15 @@ export default function NotificationBell() {
     // A push arrived → the service worker pings us → refresh instantly.
     const onSw = (e) => { if (e.data && e.data.type === "nr-push") setTimeout(load, 600); };
     if ("serviceWorker" in navigator) navigator.serviceWorker.addEventListener("message", onSw);
+    // Live: Supabase Realtime pushes every new notification row this user may see (RLS),
+    // so the bell updates within a second. The polling above stays as a fallback.
+    const supabase = createClient();
+    const channel = supabase
+      .channel("nr-notifications")
+      .on("postgres_changes", { event: "INSERT", schema: "public", table: "notifications" }, () => setTimeout(load, 300))
+      .subscribe();
     return () => {
+      supabase.removeChannel(channel);
       clearInterval(t);
       document.removeEventListener("visibilitychange", onVis);
       if ("serviceWorker" in navigator) navigator.serviceWorker.removeEventListener("message", onSw);

@@ -1,5 +1,7 @@
 "use client";
 
+import ConfirmButton from "@/components/ConfirmButton";
+
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { addService, updateService, deleteService } from "@/lib/services-actions";
@@ -103,7 +105,7 @@ function ServiceRow({ service, onChanged }) {
     setBusy(false); onChanged();
   }
   async function remove() {
-    if (!confirm(`Delete "${service.name}"?`)) return;
+    
     setBusy(true);
     await deleteService(service.id);
     setBusy(false); onChanged();
@@ -121,7 +123,7 @@ function ServiceRow({ service, onChanged }) {
           className={`rounded-lg px-2.5 py-1.5 text-xs font-semibold ${service.active ? "bg-brand-tint text-brand-dark" : "bg-canvas text-muted"}`}>
           {service.active ? "Active" : "Hidden"}
         </button>
-        <button onClick={remove} disabled={busy} title="Delete" className="rounded-lg border border-line px-2.5 py-1.5 text-xs font-semibold text-muted hover:text-red-500">Delete</button>
+        <ConfirmButton onConfirm={remove} disabled={busy} label="Delete" confirmLabel="Yes, delete" className="rounded-lg border border-line px-2.5 py-1.5 text-xs font-semibold text-muted hover:text-red-500" />
       </div>
     </div>
   );

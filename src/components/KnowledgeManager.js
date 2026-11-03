@@ -1,5 +1,7 @@
 "use client";
 
+import ConfirmButton from "@/components/ConfirmButton";
+
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { addKnowledge, updateKnowledge, deleteKnowledge } from "@/lib/knowledge-actions";
@@ -92,7 +94,7 @@ function Row({ row, titled, onChanged }) {
 
   async function save() { setBusy(true); await updateKnowledge({ id: row.id, ...edit }); setBusy(false); onChanged(); }
   async function toggle() { setBusy(true); await updateKnowledge({ id: row.id, active: !row.active }); setBusy(false); onChanged(); }
-  async function remove() { if (!confirm("Delete this item?")) return; setBusy(true); await deleteKnowledge(row.id); setBusy(false); onChanged(); }
+  async function remove() { setBusy(true); await deleteKnowledge(row.id); setBusy(false); onChanged(); }
 
   return (
     <div className={`space-y-2 p-3.5 ${row.active ? "" : "opacity-60"}`}>
@@ -105,7 +107,7 @@ function Row({ row, titled, onChanged }) {
         <button onClick={toggle} disabled={busy} className={`rounded-lg px-2.5 py-1 text-xs font-semibold ${row.active ? "bg-brand-tint text-brand-dark" : "bg-canvas text-muted"}`}>
           {row.active ? "Active" : "Hidden"}
         </button>
-        <button onClick={remove} disabled={busy} className="ml-auto rounded-lg border border-line px-2.5 py-1 text-xs font-semibold text-muted hover:text-red-500">Delete</button>
+        <ConfirmButton onConfirm={remove} disabled={busy} label="Delete" confirmLabel="Yes, delete" className="ml-auto rounded-lg border border-line px-2.5 py-1 text-xs font-semibold text-muted hover:text-red-500" />
       </div>
     </div>
   );
