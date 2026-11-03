@@ -4,6 +4,8 @@ import { createClient } from "@/lib/supabase/server";
 import { setBusinessStatus } from "../../actions";
 import SubscriptionForm from "@/components/SubscriptionForm";
 import { manageBusiness } from "@/lib/manage-actions";
+import { fixWhatsappNumber } from "../../actions";
+import { phoneDigits, formatPhone } from "@/lib/phone";
 
 function when(ts) {
   if (!ts) return "—";
@@ -21,14 +23,25 @@ export default async function ClientDetail({ params }) {
   const { data: b } = await supabase.from("businesses").select("*").eq("id", id).single();
   if (!b) notFound();
 
-  const { data: bookings } = await supabase
-    .from("bookings").select("id, ref_no, customer_name, customer_phone, service, start_time")
-    .eq("business_id", id).order("start_time", { ascending: false });
-
-  const { data: plans } = await supabase.from("plans").select("name, price, interval").order("sort");
+  const [{ data: bookings }, { data: plans }, { data: services }, { data: team }, { data: knowledge }, { data: msgs }, { count: msgCount }] = await Promise.all([
+    supabase.from("bookings").select("id, ref_no, customer_name, customer_phone, service, start_time, source")
+      .eq("business_id", id).order("start_time", { ascending: false }).limit(200),
+    supabase.from("plans").select("name, price, interval").order("sort"),
+    supabase.from("services").select("name, category, price, duration_min, active").eq("business_id", id).order("name"),
+    supabase.from("team_members").select("name, role, active").eq("business_id", id),
+    supabase.from("knowledge_items").select("type, title, content, active").eq("business_id", id),
+    supabase.from("messages").select("customer_phone, role, content, created_at").eq("business_id", id).order("created_at", { ascending: false }).limit(12),
+    supabase.from("messages").select("id", { count: "exact", head: true }).eq("business_id", id),
+  ]);
 
   const suspended = b.status === "suspended";
   const now = new Date();
+  const tz = b.timezone || "Asia/Dubai";
+  const waConnected = !!(b.meta_phone_number_id && b.meta_access_token);
+  const savedNumber = String(b.whatsapp_number || "");
+  const cleanNumber = phoneDigits(savedNumber);
+  const numberNeedsFix = !!savedNumber && savedNumber !== cleanNumber;
+  const aiOn = ["active", "trialing"].includes(b.sub_status) && !suspended;
 
   return (
     <div className="space-y-8">
@@ -74,24 +87,91 @@ export default async function ClientDetail({ params }) {
         <SubscriptionForm businessId={b.id} plans={plans || []} current={{ plan: b.plan, sub_status: b.sub_status, renews_at: b.renews_at }} />
       </section>
 
-      {/* Info grid */}
-      <section className="grid gap-4 sm:grid-cols-2">
-        <Info label="Owner email" value={b.owner_email} />
-        <Info label="WhatsApp number" value={b.whatsapp_number} />
-        <Info label="Connection" value={b.whatsapp_number ? "Connected" : "Not set"} />
-        <Info label="Joined" value={when(b.created_at)} />
-        <Info label="Business hours" value={b.hours} />
-        <Info label="Services" value={b.services} />
+      {/* Health: can this client's AI actually reply right now? */}
+      <section className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+        <Health ok={aiOn} label="AI replies" value={aiOn ? "On" : "Off"} sub={suspended ? "Account suspended" : aiOn ? `Plan ${b.plan || "—"} · ${b.sub_status}` : `Subscription: ${b.sub_status || "none"}`} />
+        <Health ok={waConnected} label="WhatsApp (Meta)" value={waConnected ? "Connected" : savedNumber ? "Number only" : "Not connected"}
+          sub={waConnected ? `Phone ID ${b.meta_phone_number_id}` : savedNumber ? "Number saved but no Meta token — AI can't send" : "Client must use Connect WhatsApp"} />
+        <Health ok={!!b.calendar_id} label="Google Calendar" value={b.calendar_id ? "Linked" : "Not linked"} sub={b.calendar_id || "Bookings still save to the dashboard"} />
+        <Health ok label="Activity" value={`${bookings?.length || 0} bookings`} sub={`${msgCount || 0} WhatsApp messages`} />
       </section>
 
-      {/* Configured info */}
-      {(b.faq || b.booking) && (
-        <section className="card p-6">
-          <h2 className="mb-3 text-sm font-semibold text-text">Agent knowledge</h2>
-          {b.booking && <p className="mb-2 text-sm"><span className="font-medium text-text">Booking: </span><span className="text-muted">{b.booking}</span></p>}
-          {b.faq && <p className="text-sm"><span className="font-medium text-text">FAQ: </span><span className="text-muted">{b.faq}</span></p>}
+      {/* Business profile */}
+      <section className="card overflow-hidden">
+        <div className="border-b border-line px-5 py-4"><h2 className="text-sm font-semibold text-text">Business profile</h2></div>
+        <dl className="grid divide-y divide-line sm:grid-cols-2 sm:divide-y-0">
+          <Row label="Owner email" value={b.owner_email} />
+          <Row label="WhatsApp number" value={
+            <span className="flex flex-wrap items-center gap-2">
+              <span className="font-mono">{formatPhone(savedNumber) || "—"}</span>
+              {numberNeedsFix && (
+                <form action={fixWhatsappNumber}>
+                  <input type="hidden" name="id" value={b.id} />
+                  <button className="rounded-md bg-amber-50 px-2 py-0.5 text-[11px] font-semibold text-amber-700 hover:bg-amber-100" title={`Saved as "${savedNumber}"`}>Fix format → {cleanNumber}</button>
+                </form>
+              )}
+            </span>
+          } />
+          <Row label="Location" value={b.location} />
+          <Row label="Timezone" value={tz} />
+          <Row label="Business hours" value={b.hours} />
+          <Row label="AI working hours" value={b.ai_hours_enabled ? "On (custom schedule)" : "Off — replies 24/7"} />
+          <Row label="Joined" value={when(b.created_at)} />
+          <Row label="Renews / trial ends" value={b.renews_at ? when(b.renews_at) : "—"} />
+        </dl>
+      </section>
+
+      {/* AI front desk */}
+      <section className="card overflow-hidden">
+        <div className="border-b border-line px-5 py-4"><h2 className="text-sm font-semibold text-text">AI front desk</h2></div>
+        <dl className="grid divide-y divide-line sm:grid-cols-2 sm:divide-y-0">
+          <Row label="Assistant name" value={b.assistant_name} />
+          <Row label="Language" value={b.primary_language} />
+          <Row label="Tone" value={b.tone} />
+          <Row label="Reply length" value={b.reply_length} />
+          <Row label="First greeting" value={b.first_greeting} />
+          <Row label="Handover rules" value={b.handover_rules} />
+          <Row label="Booking rules" value={b.booking} />
+          <Row label="FAQ" value={b.faq} />
+        </dl>
+      </section>
+
+      <div className="grid gap-4 lg:grid-cols-2">
+        {/* Services */}
+        <section className="card overflow-hidden">
+          <div className="flex items-center justify-between border-b border-line px-5 py-4"><h2 className="text-sm font-semibold text-text">Services</h2><span className="text-xs text-muted">{services?.length || 0}</span></div>
+          {(services?.length || 0) === 0
+            ? <p className="px-5 py-6 text-sm text-muted">{b.services ? `Quick text: ${b.services}` : "No services added."}</p>
+            : <ul className="divide-y divide-line">{services.map((s, i) => (
+                <li key={i} className="flex items-center justify-between gap-3 px-5 py-2.5 text-sm">
+                  <span className={s.active === false ? "text-muted line-through" : "text-text"}>{s.name}{s.category ? <span className="text-muted"> · {s.category}</span> : null}</span>
+                  <span className="shrink-0 text-xs text-muted">{s.price ?? "—"}{s.duration_min ? ` · ${s.duration_min} min` : ""}</span>
+                </li>))}</ul>}
         </section>
-      )}
+
+        {/* Team + knowledge */}
+        <section className="card overflow-hidden">
+          <div className="border-b border-line px-5 py-4"><h2 className="text-sm font-semibold text-text">Team & knowledge</h2></div>
+          <div className="space-y-3 px-5 py-4 text-sm">
+            <p><span className="font-medium text-text">Team: </span><span className="text-muted">{(team || []).map((t) => t.role ? `${t.name} (${t.role})` : t.name).join(", ") || "—"}</span></p>
+            {(knowledge || []).length === 0
+              ? <p className="text-muted">No knowledge items.</p>
+              : (knowledge || []).map((k, i) => <p key={i}><span className="pill mr-1.5 bg-canvas text-muted">{k.type}</span><span className="text-text">{k.title ? `${k.title}: ` : ""}</span><span className="text-muted">{k.content}</span></p>)}
+          </div>
+        </section>
+      </div>
+
+      {/* Latest chats */}
+      <section className="card overflow-hidden">
+        <div className="flex items-center justify-between border-b border-line px-5 py-4"><h2 className="text-sm font-semibold text-text">Latest WhatsApp messages</h2><span className="text-xs text-muted">{msgCount || 0} total</span></div>
+        {(msgs?.length || 0) === 0 ? <p className="px-5 py-8 text-center text-sm text-muted">No messages yet.</p> : (
+          <ul className="divide-y divide-line">{msgs.map((m, i) => (
+            <li key={i} className="flex gap-3 px-5 py-2.5 text-sm">
+              <span className={`pill h-fit shrink-0 ${m.role === "user" ? "bg-canvas text-muted" : "bg-brand-tint text-brand-dark"}`}>{m.role === "user" ? formatPhone(m.customer_phone) : "AI"}</span>
+              <span className="min-w-0 flex-1 text-text">{m.content}</span>
+              <span className="shrink-0 text-[11px] text-muted">{when(m.created_at)}</span>
+            </li>))}</ul>)}
+      </section>
 
       {/* Bookings */}
       <section className="card overflow-hidden">
@@ -124,6 +204,24 @@ export default async function ClientDetail({ params }) {
           </div>
         )}
       </section>
+    </div>
+  );
+}
+
+function Health({ ok, label, value, sub }) {
+  return (
+    <div className="card p-4">
+      <div className="flex items-center justify-between"><span className="text-xs font-medium text-muted">{label}</span><span className={`h-2.5 w-2.5 rounded-full ${ok ? "bg-emerald-500" : "bg-amber-400"}`} /></div>
+      <p className="mt-1 text-[15px] font-semibold text-text">{value}</p>
+      <p className="truncate text-xs text-muted" title={typeof sub === "string" ? sub : undefined}>{sub}</p>
+    </div>
+  );
+}
+function Row({ label, value }) {
+  return (
+    <div className="flex gap-3 px-5 py-3 text-sm sm:border-b sm:border-line sm:[&:nth-child(odd)]:border-r">
+      <dt className="w-36 shrink-0 text-muted">{label}</dt>
+      <dd className="min-w-0 flex-1 whitespace-pre-wrap break-words text-text">{value || "—"}</dd>
     </div>
   );
 }
