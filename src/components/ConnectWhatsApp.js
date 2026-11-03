@@ -47,6 +47,8 @@ export default function ConnectWhatsApp({ connectedNumber, aiOn = true }) {
             sessionRef.current.cancelStep = data.data.current_step || null;
             sessionRef.current.cancelError = data.data.error_message || null;
           }
+          // v4 reports Meta-side failures as a separate ERROR event
+          if (data.event === "ERROR") sessionRef.current.cancelError = data.data.error_message || "unknown error";
         }
       } catch (_) {}
     }
@@ -119,9 +121,11 @@ export default function ConnectWhatsApp({ connectedNumber, aiOn = true }) {
         config_id: FB_CONFIG_ID,
         response_type: "code",
         override_default_response_type: true,
+        // Embedded Signup v4 (v2/v3 stopped on 2026-10-15): no version/sessionInfoVersion —
+        // the version and products come from the Login for Business configuration.
         // featureType "whatsapp_business_app_onboarding" = Coexistence: the number keeps
         // working in the owner's WhatsApp Business app AND on NextReply's AI.
-        extras: { setup: {}, featureType: coexistence ? "whatsapp_business_app_onboarding" : "", sessionInfoVersion: "3" },
+        extras: coexistence ? { featureType: "whatsapp_business_app_onboarding" } : {},
       }
     );
   }
