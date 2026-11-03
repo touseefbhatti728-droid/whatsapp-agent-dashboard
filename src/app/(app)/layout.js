@@ -96,11 +96,25 @@ export default async function AppLayout({ children }) {
     </div>
   );
 
-  // Shared nav content — used by both desktop sidebar and mobile drawer.
-  // Ordered the way a new business sets up and then works day to day.
-  const navContent = (
+  // Admin command center — its own menu, with the AI assistant at the very top.
+  const adminNav = isAdmin && (
+    <div className="mt-4">
+      <NavItem href="/admin/assistant" label="AI Assistant" icon={IcSpark} />
+      <Group title="Command center">
+        <NavItem href="/admin" label="Platform overview" icon={IcGrid} exact />
+        <NavItem href="/admin/clients" label="Clients" icon={IcUsers} />
+        <NavItem href="/admin/bookings" label="All bookings" icon={IcList} />
+        <NavItem href="/admin/calendar" label="All calendars" icon={IcCalendar} />
+        <NavItem href="/admin/plans" label="Plans & revenue" icon={IcCard} />
+        <NavItem href="/admin/branding" label="Branding" icon={IcPaint} />
+      </Group>
+    </div>
+  );
+
+  // Customer menu — ordered the way a business sets up and then works day to day.
+  const customerNav = (
     <>
-      <Group title="Set up">
+      <Group title={isAdmin && !managing ? "My business · Set up" : "Set up"}>
         <NavItem href="/dashboard" label="Overview" icon={IcGrid} exact />
         <NavItem href="/connect-whatsapp" label="Connect WhatsApp" icon={(<svg {...S}><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg>)} />
         <NavItem href="/ai-front-desk" label="AI front desk" icon={IcRobot} />
@@ -128,20 +142,20 @@ export default async function AppLayout({ children }) {
         <NavItem href="/billing" label="Billing" icon={IcCard} />
       </Group>
 
-      {isAdmin && (
-        <div className="mt-5 border-t border-line pt-4">
-          <p className="px-2.5 pb-1.5 text-[10.5px] font-semibold uppercase tracking-[0.12em] text-brand">Admin</p>
-          <nav className="space-y-0.5">
-            <NavItem href="/admin" label="Overview" icon={IcGrid} exact />
-            <NavItem href="/admin/clients" label="Clients" icon={IcUsers} />
-            <NavItem href="/admin/bookings" label="All bookings" icon={IcList} />
-            <NavItem href="/admin/calendar" label="Calendar" icon={IcCalendar} />
-            <NavItem href="/admin/plans" label="Plans" icon={IcCard} />
-            <NavItem href="/admin/assistant" label="Assistant" icon={IcSpark} />
-            <NavItem href="/admin/branding" label="Branding" icon={IcPaint} />
-          </nav>
-        </div>
-      )}
+    </>
+  );
+
+  // Admins (not managing a customer): command center first, own business below.
+  // Managing a customer: their menu first, command center below to get back.
+  const navContent = isAdmin && !managing ? (
+    <>
+      {adminNav}
+      <div className="mt-5 border-t border-line pt-1">{customerNav}</div>
+    </>
+  ) : (
+    <>
+      {customerNav}
+      {isAdmin && <div className="mt-5 border-t border-line pt-1">{adminNav}</div>}
     </>
   );
 

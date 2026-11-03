@@ -10,14 +10,15 @@ export default async function ClientsPage() {
 
   const { data: businesses } = await supabase
     .from("businesses")
-    .select("id, name, location, whatsapp_number, owner_email, status, created_at")
+    .select("id, name, location, whatsapp_number, meta_phone_number_id, owner_email, status, plan, sub_status, created_at")
     .order("created_at", { ascending: false });
 
   const { data: bookings } = await supabase.from("bookings").select("business_id");
   const counts = {};
   (bookings || []).forEach((b) => { counts[b.business_id] = (counts[b.business_id] || 0) + 1; });
 
-  const clients = (businesses || []).map((b) => ({ ...b, count: counts[b.id] || 0 }));
+  // Never send the Meta id itself to the browser — only whether WhatsApp is really connected.
+  const clients = (businesses || []).map(({ meta_phone_number_id, ...b }) => ({ ...b, connected: !!meta_phone_number_id, count: counts[b.id] || 0 }));
 
   return (
     <div className="space-y-6">

@@ -4,11 +4,32 @@ import { useState, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
 
 const SUGGESTIONS = [
-  "How many bookings this week?",
-  "List all clients",
-  "Show upcoming bookings for Glow",
-  "Change brand colour to blue",
+  "Give me today's platform report",
+  "Which clients have WhatsApp not connected yet?",
+  "Full details of Swastha Fit Pro",
+  "What's my estimated monthly revenue?",
+  "Latest WhatsApp Business coexistence rules from Meta",
+  "Fix the WhatsApp number format for Swastha Fit Pro",
 ];
+
+// Tiny, safe renderer for the assistant's answers: **bold**, `code`, "- " bullets and links.
+function renderText(text) {
+  const inline = (s, key) => {
+    const parts = String(s).split(/(\*\*[^*]+\*\*|`[^`]+`|https?:\/\/[^\s)]+)/g);
+    return parts.map((p, i) => {
+      if (/^\*\*[^*]+\*\*$/.test(p)) return <b key={`${key}-${i}`} className="font-semibold">{p.slice(2, -2)}</b>;
+      if (/^`[^`]+`$/.test(p)) return <code key={`${key}-${i}`} className="rounded bg-canvas px-1 py-0.5 text-[12.5px]">{p.slice(1, -1)}</code>;
+      if (/^https?:\/\//.test(p)) return <a key={`${key}-${i}`} href={p} target="_blank" rel="noreferrer" className="break-all text-brand underline">{p}</a>;
+      return p;
+    });
+  };
+  return String(text).split("\n").map((line, i) => {
+    const t = line.replace(/^#{1,6}\s+/, "");
+    if (/^\s*[-•*]\s+/.test(t)) return <div key={i} className="flex gap-2 pl-1"><span className="text-muted">•</span><span>{inline(t.replace(/^\s*[-•*]\s+/, ""), i)}</span></div>;
+    if (!t.trim()) return <div key={i} className="h-2" />;
+    return <div key={i} className={/^#{1,6}\s/.test(line) ? "font-semibold" : ""}>{inline(t, i)}</div>;
+  });
+}
 
 const SendIcon = (
   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 2 11 13M22 2l-7 20-4-9-9-4z"/></svg>
@@ -86,9 +107,9 @@ export default function AssistantChat() {
         {msgs.length === 0 && (
           <div className="mx-auto max-w-md pt-10 text-center">
             <div className="logo-mark mx-auto mb-4 flex h-14 w-14 items-center justify-center">{SparkIcon}</div>
-            <p className="text-[15px] font-semibold text-text">How can I help?</p>
+            <p className="text-[15px] font-semibold text-text">Your command center</p>
             <p className="mx-auto mt-1.5 max-w-sm text-sm leading-relaxed text-muted">
-              Ask about your clients, bookings, or chats — or tell me to suspend, edit, or rebrand. I'll always ask you to confirm before making a change.
+              I can see every client, booking and chat, search the web for the latest info, and make changes — suspend, edit settings, fix numbers, change plans, cancel bookings or message a customer. You confirm every change with one click.
             </p>
             <div className="mt-6 flex flex-wrap justify-center gap-2">
               {SUGGESTIONS.map((s) => (
@@ -102,14 +123,15 @@ export default function AssistantChat() {
           if (m.role === "user")
             return <div key={i} className="flex justify-end"><div className="max-w-[78%] rounded-2xl rounded-tr-md bg-brand px-4 py-2.5 text-sm leading-relaxed text-white">{m.text}</div></div>;
           if (m.role === "assistant")
-            return <div key={i} className="flex justify-start"><div className="max-w-[82%] whitespace-pre-wrap rounded-2xl rounded-tl-md border border-line bg-surface px-4 py-2.5 text-sm leading-relaxed text-text">{m.text}</div></div>;
+            return <div key={i} className="flex justify-start"><div className="max-w-[85%] space-y-0.5 rounded-2xl rounded-tl-md border border-line bg-surface px-4 py-3 text-sm leading-relaxed text-text">{renderText(m.text)}</div></div>;
           const p = m.proposal;
           return (
             <div key={i} className="flex justify-start">
               <div className="w-full max-w-[85%] rounded-2xl border border-brand/25 bg-brand-tint/30 p-4">
                 <p className="text-[11px] font-semibold uppercase tracking-wide text-brand-dark">Confirm action</p>
                 <p className="mt-1.5 text-sm font-medium text-text">{p.summary}</p>
-                {p.changes && <p className="mt-1 text-xs text-muted">{Object.entries(p.changes).map(([k, v]) => `${k}: ${v}`).join(" · ")}</p>}
+                {p.clientName && <p className="mt-1 text-xs text-muted">Client: <b className="text-text">{p.clientName}</b></p>}
+                {p.changes && <p className="mt-1 break-words text-xs text-muted">{Object.entries(p.changes).map(([k, v]) => `${k}: ${typeof v === "object" ? JSON.stringify(v) : v}`).join(" · ")}</p>}
                 {m.status === "pending" ? (
                   <div className="mt-3.5 flex gap-2">
                     <button onClick={() => confirm(i)} disabled={loading} className="rounded-lg bg-brand px-3.5 py-1.5 text-sm font-semibold text-white transition hover:bg-brand-dark disabled:opacity-60">Confirm</button>
@@ -137,7 +159,7 @@ export default function AssistantChat() {
 
       <div className="border-t border-line bg-canvas/40 p-3">
         <div className="flex items-center gap-2 rounded-2xl border border-line bg-surface p-1.5 pl-4 transition focus-within:border-brand" style={{ boxShadow: "0 0 0 0 transparent" }}>
-          <input value={input} onChange={(e) => setInput(e.target.value)} onKeyDown={(e) => e.key === "Enter" && send()} placeholder="Ask anything about your platform…" className="flex-1 bg-transparent text-sm text-text outline-none placeholder:text-muted/60" />
+          <textarea rows={1} value={input} onChange={(e) => setInput(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); send(); } }} placeholder="Ask anything, or tell me what to change… (Shift+Enter for a new line)" className="max-h-40 flex-1 resize-none bg-transparent py-2 text-sm text-text outline-none placeholder:text-muted/60" />
           <button onClick={() => send()} disabled={loading || !input.trim()} className="flex h-9 w-9 items-center justify-center rounded-xl bg-brand text-white transition hover:bg-brand-dark disabled:opacity-40">{SendIcon}</button>
         </div>
       </div>
