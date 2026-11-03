@@ -79,8 +79,10 @@ export default function SettingsForm({ businesses }) {
         <h2 className="text-sm font-semibold text-text">Business details</h2>
         <Field label="Business name" value={form.name} onChange={(v) => set("name", v)} placeholder="Glow Beauty Salon" />
         <Field label="Location" value={form.location} onChange={(v) => set("location", v)} placeholder="Business Bay, Dubai" />
-        <Field label="Business hours" value={form.hours} onChange={(v) => set("hours", v)} placeholder="Mon–Sat, 10:00 AM – 8:00 PM" />
-        <Area label="Services" value={form.services} onChange={(v) => set("services", v)} placeholder="Haircut, hair color, keratin treatment, facial…" hint="What you offer, with prices if you like." />
+        <Field label="Business hours" value={form.hours} onChange={(v) => set("hours", v)} placeholder="Mon–Sat, 10:00 AM – 8:00 PM"
+          hint={<>Used when AI working hours are off. If you turn on <a href="/ai-front-desk" className="font-semibold text-brand">AI working hours</a>, the AI uses those exact days and times instead.</>} />
+        <Area label="Services (quick text)" value={form.services} onChange={(v) => set("services", v)} placeholder="Haircut, hair color, keratin treatment, facial…"
+          hint={<>Only used until you add services on the <a href="/services" className="font-semibold text-brand">Services page</a>. Services there have prices and durations, and each booking is as long as its service.</>} />
       </div>
 
       {/* Agent knowledge */}

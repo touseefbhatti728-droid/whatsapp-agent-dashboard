@@ -4,10 +4,11 @@ import { createClient } from "@/lib/supabase/server";
 import { getSessionUser, getIsAdmin, getActiveBusiness } from "@/lib/session";
 import BookingLink from "@/components/BookingLink";
 
-function formatWhen(ts) {
+// Shown in the business timezone (the server runs in UTC).
+function formatWhen(ts, tz = "Asia/Dubai") {
   if (!ts) return "—";
-  return new Date(ts).toLocaleString(undefined, {
-    weekday: "short", day: "numeric", month: "short", hour: "numeric", minute: "2-digit",
+  return new Date(ts).toLocaleString("en-GB", {
+    timeZone: tz, weekday: "short", day: "numeric", month: "short", hour: "numeric", minute: "2-digit",
   });
 }
 function initials(name) {
@@ -42,7 +43,7 @@ export default async function DashboardPage() {
   // Counts + the next 6 bookings, all in parallel, for this owner's business only.
   const bizId = primary?.id || "00000000-0000-0000-0000-000000000000";
   const base = () => supabase.from("bookings").select("id", { count: "exact", head: true }).eq("business_id", bizId);
-  const [todayRes, monthRes, totalRes, upcomingCountRes, upcomingRes, servicesRes] = await Promise.all([
+  const [todayRes, monthRes, totalRes, upcomingCountRes, upcomingRes, servicesRes, recentRes] = await Promise.all([
     base().gte("start_time", startToday.toISOString()).lt("start_time", endToday.toISOString()),
     base().gte("start_time", startMonth.toISOString()).lt("start_time", endMonth.toISOString()),
     base(),
@@ -54,7 +55,23 @@ export default async function DashboardPage() {
       .order("start_time", { ascending: true })
       .limit(6),
     supabase.from("services").select("id", { count: "exact", head: true }).eq("business_id", bizId),
+    supabase.from("messages").select("customer_phone, content, created_at")
+      .eq("business_id", bizId).eq("role", "user")
+      .order("created_at", { ascending: false }).limit(40),
   ]);
+  // Latest message per customer, newest first (5 chats)
+  const recentChats = [];
+  for (const m of recentRes.data || []) {
+    if (!recentChats.some((c) => c.phone === m.customer_phone)) recentChats.push({ phone: m.customer_phone, text: m.content, at: m.created_at });
+    if (recentChats.length >= 5) break;
+  }
+
+  // Status strip: is the AI actually answering right now?
+  const subOn = ["active", "trialing"].includes(primary?.sub_status);
+  const aiOn = subOn && primary?.status !== "suspended";
+  const planLabel = primary?.plan ? `${primary.plan}${primary.sub_status === "trialing" ? " · trial" : ""}` : "No plan";
+  const trialEnds = primary?.sub_status === "trialing" && primary?.renews_at
+    ? new Date(primary.renews_at).toLocaleDateString(undefined, { day: "numeric", month: "short", timeZone: tz }) : null;
   const todayCount = todayRes.count || 0;
   const monthCount = monthRes.count || 0;
   const totalCount = totalRes.count || 0;
@@ -95,6 +112,18 @@ export default async function DashboardPage() {
           New appointment
         </Link>
       </div>
+
+      {/* Status strip — the four things an owner checks first */}
+      <section className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+        <StatusCard href="/billing" label="AI receptionist" value={aiOn ? "Answering customers" : "Paused"} ok={aiOn}
+          sub={aiOn ? "Replies on WhatsApp 24/7" : primary?.status === "suspended" ? "Account suspended" : "Start a plan or trial in Billing"} />
+        <StatusCard href="/connect-whatsapp" label="WhatsApp" value={waConnected ? `+${waDigits || "connected"}` : "Not connected"} ok={waConnected}
+          sub={waConnected ? "Messages reach your AI" : "Connect your number to go live"} />
+        <StatusCard href="/billing" label="Plan" value={planLabel} ok={subOn}
+          sub={trialEnds ? `First payment on ${trialEnds}` : subOn ? "Active subscription" : "Choose a plan"} />
+        <StatusCard href="/calendar" label="Today" value={`${todayCount} appointment${todayCount === 1 ? "" : "s"}`} ok
+          sub={`${upcomingCount} upcoming in total`} />
+      </section>
 
       {/* WhatsApp booking link */}
       <BookingLink link={bookingLink} connected={waConnected} />
@@ -161,6 +190,7 @@ export default async function DashboardPage() {
         </div>
       </section>
 
+      <div className="grid gap-4 lg:grid-cols-[1.4fr_1fr]">
       {/* Upcoming appointments */}
       <section className="card overflow-hidden">
         <div className="flex items-center justify-between border-b border-line px-4 py-4 md:px-5">
@@ -186,7 +216,7 @@ export default async function DashboardPage() {
                   </p>
                 </div>
                 <div className="shrink-0 text-right">
-                  <p className="text-xs font-medium text-text">{formatWhen(b.start_time)}</p>
+                  <p className="text-xs font-medium text-text">{formatWhen(b.start_time, tz)}</p>
                   <span className="mt-1 inline-flex items-center gap-1 rounded-md bg-brand-tint px-2 py-0.5 text-xs font-semibold text-brand-dark">
                     {b.ref_no ? `BK-${b.ref_no}` : "Booked"}
                   </span>
@@ -196,7 +226,48 @@ export default async function DashboardPage() {
           </div>
         )}
       </section>
+
+      {/* Latest WhatsApp chats */}
+      <section className="card overflow-hidden">
+        <div className="flex items-center justify-between border-b border-line px-4 py-4 md:px-5">
+          <h2 className="text-sm font-semibold text-text">Latest WhatsApp messages</h2>
+          <Link href="/conversations" className="text-xs font-semibold text-brand hover:text-brand-dark">Open chats</Link>
+        </div>
+        {recentChats.length === 0 ? (
+          <div className="px-5 py-16 text-center">
+            <p className="text-sm font-medium text-text">No messages yet</p>
+            <p className="mt-1 text-sm text-muted">{waConnected ? "Customer messages will show up here." : "Connect WhatsApp to start receiving messages."}</p>
+          </div>
+        ) : (
+          <div className="divide-y divide-line">
+            {recentChats.map((c) => (
+              <Link key={c.phone} href="/conversations" className="flex items-start gap-3 p-4 transition hover:bg-canvas/60 md:px-5">
+                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#25D366]/15 text-[11px] font-bold text-[#128C7E]">WA</div>
+                <div className="min-w-0 flex-1">
+                  <p className="truncate text-sm font-medium text-text">+{c.phone}</p>
+                  <p className="truncate text-xs text-muted">{c.text}</p>
+                </div>
+                <span className="shrink-0 text-[11px] text-muted">{formatWhen(c.at, tz)}</span>
+              </Link>
+            ))}
+          </div>
+        )}
+      </section>
+      </div>
     </div>
+  );
+}
+
+function StatusCard({ href, label, value, sub, ok }) {
+  return (
+    <Link href={href} className="card group flex flex-col gap-1 p-4 transition hover:-translate-y-0.5 hover:shadow-md">
+      <div className="flex items-center justify-between">
+        <span className="text-[12px] font-medium text-muted">{label}</span>
+        <span className={`h-2.5 w-2.5 rounded-full ${ok ? "bg-emerald-500 shadow-[0_0_0_4px_rgba(16,185,129,0.15)]" : "bg-amber-400 shadow-[0_0_0_4px_rgba(251,191,36,0.2)]"}`} />
+      </div>
+      <p className="truncate text-[15px] font-semibold text-text">{value}</p>
+      <p className="truncate text-xs text-muted">{sub}</p>
+    </Link>
   );
 }
 

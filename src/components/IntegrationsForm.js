@@ -7,28 +7,32 @@ import { saveWebhook } from "@/lib/integration-actions";
 export default function IntegrationsForm({ businessId, initialUrl }) {
   const router = useRouter();
   const [url, setUrl] = useState(initialUrl || "");
+  const [savedUrl, setSavedUrl] = useState(initialUrl || "");
   const [saving, setSaving] = useState(false);
-  const [saved, setSaved] = useState(false);
   const [testing, setTesting] = useState(false);
-  const [testMsg, setTestMsg] = useState("");
+  const [msg, setMsg] = useState(null); // { ok, text }
+  const dirty = url.trim() !== savedUrl;
 
   async function save() {
-    setSaving(true); setTestMsg("");
+    setSaving(true); setMsg(null);
     const r = await saveWebhook({ id: businessId, webhook_url: url });
     setSaving(false);
-    if (r.ok) { setSaved(true); router.refresh(); } else { setTestMsg("Error: " + r.error); }
+    if (r.ok) {
+      setSavedUrl(url.trim());
+      setMsg({ ok: true, text: url.trim() ? "Saved. Every new booking will be sent here." : "Webhook removed." });
+      router.refresh();
+    } else setMsg({ ok: false, text: r.error });
   }
 
   async function test() {
-    setTesting(true); setTestMsg("");
+    setTesting(true); setMsg(null);
     try {
-      const res = await fetch("/api/integrations/test", {
-        method: "POST", headers: { "content-type": "application/json" },
-        body: JSON.stringify({ id: businessId }),
-      });
+      const res = await fetch("/api/integrations/test", { method: "POST" });
       const data = await res.json();
-      setTestMsg(data.ok ? "✓ Test sent! Check your Zapier / Make." : "Test failed: " + (data.error || "no response"));
-    } catch { setTestMsg("Test failed — could not reach your webhook."); }
+      setMsg(data.ok
+        ? { ok: true, text: `Test booking sent (your tool answered ${data.status}). Check Zapier / Make / your CRM.` }
+        : { ok: false, text: data.error || "No response from your webhook." });
+    } catch { setMsg({ ok: false, text: "Test failed — could not reach your webhook." }); }
     setTesting(false);
   }
 
@@ -42,14 +46,15 @@ export default function IntegrationsForm({ businessId, initialUrl }) {
         </p>
         <div className="mt-4">
           <label className="mb-1.5 block text-sm font-medium text-text">Webhook URL</label>
-          <input value={url} onChange={(e) => { setUrl(e.target.value); setSaved(false); }} placeholder="https://hooks.zapier.com/hooks/catch/..." className="field font-mono text-xs" />
+          <input value={url} onChange={(e) => { setUrl(e.target.value); setMsg(null); }} placeholder="https://hooks.zapier.com/hooks/catch/..." className="field font-mono text-xs" />
+          <p className="mt-1 text-xs text-muted">Must be an https:// address. Leave empty and save to switch it off.</p>
         </div>
         <div className="mt-4 flex flex-wrap items-center gap-3">
-          <button onClick={save} disabled={saving} className="btn-brand">{saving ? "Saving…" : "Save webhook"}</button>
-          <button onClick={test} disabled={testing || !url} className="btn-ghost">{testing ? "Sending…" : "Send test"}</button>
-          {saved && <span className="text-sm font-medium text-brand">✓ Saved</span>}
-          {testMsg && <span className="text-sm text-muted">{testMsg}</span>}
+          <button onClick={save} disabled={saving || !dirty} className="btn-brand">{saving ? "Saving…" : "Save webhook"}</button>
+          <button onClick={test} disabled={testing || !savedUrl || dirty} title={dirty ? "Save the URL first" : ""} className="btn-ghost">{testing ? "Sending…" : "Send test booking"}</button>
+          <span className={`pill ${savedUrl ? "bg-brand-tint text-brand-dark" : "bg-canvas text-muted"}`}>{savedUrl ? "Connected" : "Not connected"}</span>
         </div>
+        {msg && <p className={`mt-3 rounded-lg px-3 py-2 text-sm ${msg.ok ? "bg-brand-tint/60 text-brand-dark" : "bg-red-50 text-red-600"}`}>{msg.text}</p>}
       </div>
 
       <div className="card p-6">
