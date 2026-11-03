@@ -11,8 +11,8 @@ export default async function AssistantPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-semibold tracking-tight text-text">Assistant</h1>
-        <p className="mt-1 text-sm text-muted">Ask about your data, or tell it to make a change — you confirm before anything happens.</p>
+        <h1 className="page-title">AI Assistant</h1>
+        <p className="page-sub">Your command center: ask anything about the platform or the web, or tell it what to change. You confirm every change.</p>
       </div>
       <AssistantChat />
     </div>

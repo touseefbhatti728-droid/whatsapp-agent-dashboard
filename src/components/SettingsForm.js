@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { saveBusinessInfo } from "@/lib/settings-actions";
+import { toast } from "@/lib/toast";
 
 function blank(b) {
   return {
@@ -23,11 +24,14 @@ export default function SettingsForm({ businesses }) {
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
 
+  // Reload the form only when a different business is picked — not after our own
+  // save refreshes the page (that used to wipe the "Saved" message instantly).
   useEffect(() => {
     const b = businesses.find((x) => x.id === selectedId);
     setForm(blank(b));
     setSaved(false);
-  }, [selectedId, businesses]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedId]);
 
   const current = businesses.find((b) => b.id === selectedId) || {};
   const set = (k, v) => { setForm((f) => ({ ...f, [k]: v })); setSaved(false); };
@@ -38,7 +42,7 @@ export default function SettingsForm({ businesses }) {
     setError("");
     const res = await saveBusinessInfo({ id: selectedId, ...form });
     setSaving(false);
-    if (res && res.ok) { setSaved(true); router.refresh(); }
+    if (res && res.ok) { setSaved(true); toast.success("Settings saved"); router.refresh(); }
     else setError((res && res.error) || "Couldn't save. Please try again.");
   }
   const waConnected = !!current.meta_phone_number_id;

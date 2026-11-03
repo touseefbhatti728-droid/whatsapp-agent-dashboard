@@ -68,7 +68,11 @@ export default async function DashboardPage() {
 
   // Status strip: is the AI actually answering right now?
   const subOn = ["active", "trialing"].includes(primary?.sub_status);
-  const aiOn = subOn && primary?.status !== "suspended";
+  // The AI only answers when the plan is on, the account isn't suspended AND WhatsApp is connected.
+  const aiOn = subOn && primary?.status !== "suspended" && !!(primary?.meta_phone_number_id && primary?.meta_access_token);
+  const aiWhyOff = primary?.status === "suspended" ? "Account suspended"
+    : !subOn ? "Start a plan or trial in Billing"
+    : "Connect WhatsApp so it can reply";
   const planLabel = primary?.plan ? `${primary.plan}${primary.sub_status === "trialing" ? " · trial" : ""}` : "No plan";
   const trialEnds = primary?.sub_status === "trialing" && primary?.renews_at
     ? new Date(primary.renews_at).toLocaleDateString(undefined, { day: "numeric", month: "short", timeZone: tz }) : null;
@@ -116,12 +120,15 @@ export default async function DashboardPage() {
 
       {/* Status strip — the four things an owner checks first */}
       <section className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-        <StatusCard href="/billing" label="AI receptionist" value={aiOn ? "Answering customers" : "Paused"} ok={aiOn}
-          sub={aiOn ? "Replies on WhatsApp 24/7" : primary?.status === "suspended" ? "Account suspended" : "Start a plan or trial in Billing"} />
+        <StatusCard href={aiOn ? "/conversations" : subOn && primary?.status !== "suspended" ? "/connect-whatsapp" : "/billing"} label="AI receptionist" value={aiOn ? "Answering customers" : "Not answering yet"} ok={aiOn}
+          sub={aiOn ? "Replies on WhatsApp 24/7" : aiWhyOff} />
         <StatusCard href="/connect-whatsapp" label="WhatsApp" value={waConnected ? `+${waDigits || "connected"}` : "Not connected"} ok={waConnected}
           sub={waConnected ? "Messages reach your AI" : "Connect your number to go live"} />
         <StatusCard href="/billing" label="Plan" value={planLabel} ok={subOn}
-          sub={trialEnds ? `First payment on ${trialEnds}` : subOn ? "Active subscription" : "Choose a plan"} />
+          sub={trialEnds ? `First payment on ${trialEnds}`
+            : primary?.sub_status === "trialing" ? (primary?.stripe_customer_id ? "Free trial" : "Free access from NextReply")
+            : primary?.sub_status === "active" ? "Active subscription"
+            : "Choose a plan"} />
         <StatusCard href="/calendar" label="Today" value={`${todayCount} appointment${todayCount === 1 ? "" : "s"}`} ok
           sub={`${upcomingCount} upcoming in total`} />
       </section>
