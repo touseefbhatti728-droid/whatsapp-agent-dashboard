@@ -23,12 +23,36 @@ function renderText(text) {
       return p;
     });
   };
-  return String(text).split("\n").map((line, i) => {
+  // Group markdown tables (consecutive "| a | b |" lines) into a real table.
+  const lines = String(text).split("\n");
+  const out = [];
+  for (let i = 0; i < lines.length; i++) {
+    if (/^\s*\|.*\|\s*$/.test(lines[i])) {
+      const rows = [];
+      while (i < lines.length && /^\s*\|.*\|\s*$/.test(lines[i])) { rows.push(lines[i]); i++; }
+      i--;
+      const cells = rows.filter((r) => !/^\s*\|[\s:|-]+\|\s*$/.test(r)).map((r) => r.trim().slice(1, -1).split("|").map((c) => c.trim()));
+      const [head, ...body] = cells;
+      out.push(
+        <div key={`t${i}`} className="my-1.5 overflow-x-auto rounded-lg border border-line">
+          <table className="w-full text-[13px]">
+            <thead><tr className="bg-canvas">{(head || []).map((h, k) => <th key={k} className="px-2.5 py-1.5 text-left font-semibold text-text">{inline(h, `h${i}${k}`)}</th>)}</tr></thead>
+            <tbody className="divide-y divide-line">{body.map((r, ri) => <tr key={ri}>{r.map((c, k) => <td key={k} className="px-2.5 py-1.5 align-top">{inline(c, `c${i}${ri}${k}`)}</td>)}</tr>)}</tbody>
+          </table>
+        </div>
+      );
+      continue;
+    }
+    out.push(renderLine(lines[i], i));
+  }
+  return out;
+
+  function renderLine(line, i) {
     const t = line.replace(/^#{1,6}\s+/, "");
     if (/^\s*[-•*]\s+/.test(t)) return <div key={i} className="flex gap-2 pl-1"><span className="text-muted">•</span><span>{inline(t.replace(/^\s*[-•*]\s+/, ""), i)}</span></div>;
     if (!t.trim()) return <div key={i} className="h-2" />;
     return <div key={i} className={/^#{1,6}\s/.test(line) ? "font-semibold" : ""}>{inline(t, i)}</div>;
-  });
+  }
 }
 
 const SendIcon = (

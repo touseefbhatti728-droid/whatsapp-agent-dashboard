@@ -50,6 +50,8 @@ export default async function BillingPage() {
   // A real Stripe subscription exists (old no-card "trialing" defaults don't count).
   const hasSub = !!(biz && biz.stripe_customer_id && ["trialing", "active", "past_due"].includes(biz.sub_status));
   const trialEligible = !!(biz && !biz.stripe_customer_id);
+  // Plan switched on by an admin without Stripe (e.g. a free trial we gave) — the AI is on.
+  const adminGranted = !!(biz && !biz.stripe_customer_id && ["trialing", "active"].includes(biz.sub_status));
   const btnLabel = trialEligible ? "Start 7-day free trial" : hasSub ? "Switch plan" : "Subscribe";
 
   return (
@@ -65,9 +67,10 @@ export default async function BillingPage() {
           <div className="flex flex-wrap items-center justify-between gap-4">
             <div>
               <p className="text-xs font-medium uppercase tracking-wide text-muted">Current plan</p>
-              <p className="mt-1 text-xl font-bold text-text">{hasSub ? (biz.plan || "—") : "No plan yet"}</p>
+              <p className="mt-1 text-xl font-bold text-text">{hasSub || adminGranted ? (biz.plan || "—") : "No plan yet"}</p>
               <p className="mt-1 text-sm text-muted">
-                {biz.sub_status === "trialing" && biz.stripe_customer_id ? `Free trial — first payment on ${fmtDate(biz.renews_at)}`
+                {adminGranted ? "Free access given by NextReply — your AI is on. Start a plan below any time to keep it running when this ends."
+                  : biz.sub_status === "trialing" && biz.stripe_customer_id ? `Free trial — first payment on ${fmtDate(biz.renews_at)}`
                   : biz.sub_status === "active" ? `Renews on ${fmtDate(biz.renews_at)}`
                   : biz.sub_status === "past_due" ? "Payment failed — your AI is paused until the card is updated"
                   : biz.sub_status === "cancelled" ? "Subscription ended — your AI is paused"

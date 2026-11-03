@@ -98,7 +98,7 @@ async function runReadTool(supabase, name, input) {
     const s = String(input.search || "").toLowerCase();
     return (bs || [])
       .filter((b) => !s || `${b.name} ${b.owner_email} ${b.whatsapp_number}`.toLowerCase().includes(s))
-      .map((b) => ({ name: b.name || `(unnamed #${b.id})`, status: b.status, plan: b.plan, subscription: b.sub_status, whatsapp: b.whatsapp_number ? "+" + digits(b.whatsapp_number) : null, whatsapp_connected: !!b.meta_phone_number_id, owner: b.owner_email, bookings: counts[b.id] || 0, joined: b.created_at }));
+      .map((b) => ({ name: b.name || `(unnamed #${b.id})`, status: b.status, plan: b.plan, subscription: b.sub_status, whatsapp_saved_as: b.whatsapp_number || null, whatsapp_clean: b.whatsapp_number ? digits(b.whatsapp_number) : null, whatsapp_connected: !!b.meta_phone_number_id, owner: b.owner_email, bookings: counts[b.id] || 0, joined: b.created_at }));
   }
   if (name === "get_client") {
     const r = await resolveClient(supabase, input.client_name);
@@ -117,7 +117,8 @@ async function runReadTool(supabase, name, input) {
     const { meta_access_token, stripe_customer_id, ...safe } = b;
     return {
       ...safe,
-      whatsapp_number: b.whatsapp_number ? "+" + digits(b.whatsapp_number) : null,
+      whatsapp_saved_as: b.whatsapp_number || null,
+      whatsapp_clean: b.whatsapp_number ? digits(b.whatsapp_number) : null,
       whatsapp_connected: !!(b.meta_phone_number_id && meta_access_token),
       has_stripe_customer: !!stripe_customer_id,
       services: svc || [], team: team || [], knowledge: kn || [],

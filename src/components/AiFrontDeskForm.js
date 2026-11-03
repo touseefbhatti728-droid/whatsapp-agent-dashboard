@@ -58,7 +58,8 @@ export default function AiFrontDeskForm({ businesses }) {
     setForm(blank(b));
     setSaved(false);
     setError("");
-  }, [selectedId, businesses]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedId]); // not after our own save refresh
 
   const set = (k, v) => { setForm((f) => ({ ...f, [k]: v })); setSaved(false); };
   const setDay = (dk, patch) => {
