@@ -7,17 +7,18 @@ export default async function InsightsPage() {
   // owners: their business · admins: the customer they are managing
   const activeBizId = (await getActiveBusiness(user?.id))?.id ?? "00000000-0000-0000-0000-000000000000"; // no business -> matches nothing
 
-  const { data: businesses } = await supabase.from("businesses").select("id").eq("id", activeBizId);
+  const { data: businesses } = await supabase.from("businesses").select("id, timezone").eq("id", activeBizId);
   const ids = (businesses || []).map((b) => b.id);
 
   let bookings = [];
   if (ids.length) {
     const { data } = await supabase
       .from("bookings")
-      .select("customer_phone, service, start_time, business_id")
+      .select("customer_phone, service, start_time, business_id, source, created_at")
       .in("business_id", ids);
     bookings = data || [];
   }
+  const impact = ids.length ? await aiImpact(supabase, ids[0], businesses[0]?.timezone || "Asia/Dubai", bookings) : null;
 
   const now = new Date();
   const startMonth = new Date(now.getFullYear(), now.getMonth(), 1);
@@ -66,6 +67,8 @@ export default async function InsightsPage() {
         <Stat label="Unique clients" value={uniqueClients} />
         <Stat label="Upcoming" value={upcoming} accent />
       </section>
+
+      {impact && <ImpactCard impact={impact} />}
 
       {bookings.length === 0 ? (
         <div className="card px-5 py-16 text-center">
@@ -131,6 +134,70 @@ function Stat({ label, value, accent }) {
     <div className="stat p-4 md:p-6">
       <div className="text-[13px] font-medium text-muted">{label}</div>
       <div className={`mt-2 text-[24px] font-bold leading-none tracking-tight md:text-[30px] ${accent ? "text-brand" : "text-text"}`}>{value}</div>
+    </div>
+  );
+}
+
+// "What your AI did for you" — last 30 days, from chats + bookings the AI made.
+async function aiImpact(supabase, bizId, tz, bookings) {
+  const since = new Date(Date.now() - 30 * 86400000);
+  const [{ count: replies }, { data: inbound }, { data: services }] = await Promise.all([
+    supabase.from("messages").select("id", { count: "exact", head: true }).eq("business_id", bizId).eq("role", "assistant").gte("created_at", since.toISOString()),
+    supabase.from("messages").select("customer_phone, created_at").eq("business_id", bizId).eq("role", "user").gte("created_at", since.toISOString()).limit(5000),
+    supabase.from("services").select("name, price").eq("business_id", bizId),
+  ]);
+  const hourFmt = new Intl.DateTimeFormat("en-GB", { timeZone: tz, hour: "2-digit", hour12: false });
+  const chats = new Set();
+  const lateChats = new Set();
+  for (const m of inbound || []) {
+    const phone = m.customer_phone || "";
+    const day = String(m.created_at).slice(0, 10);
+    chats.add(phone + day);
+    const h = Number(hourFmt.format(new Date(m.created_at))) % 24;
+    if (h < 9 || h >= 21) lateChats.add(phone + day);
+  }
+  const priceOf = new Map((services || []).map((s) => [String(s.name || "").trim().toLowerCase(), Number(String(s.price ?? "").replace(/[^\d.]/g, "")) || 0]));
+  const aiBookings = bookings.filter((b) => (b.source || "whatsapp") === "whatsapp" && new Date(b.created_at || b.start_time) >= since);
+  const value = aiBookings.reduce((sum, b) => sum + (priceOf.get(String(b.service || "").trim().toLowerCase()) || 0), 0);
+  return {
+    replies: replies || 0,
+    chats: chats.size,
+    lateChats: lateChats.size,
+    bookings: aiBookings.length,
+    value,
+    currency: tz === "Asia/Karachi" ? "PKR" : "AED",
+    hoursSaved: Math.round(((replies || 0) * 1.5) / 60),
+  };
+}
+
+function ImpactCard({ impact }) {
+  const money = impact.value ? `${impact.currency} ${Math.round(impact.value).toLocaleString("en-US")}` : "—";
+  return (
+    <section className="card p-5 md:p-6">
+      <div className="flex flex-wrap items-baseline justify-between gap-2">
+        <h2 className="text-base font-semibold text-text">What your AI did for you</h2>
+        <span className="text-xs text-muted">Last 30 days</span>
+      </div>
+      <div className="mt-5 grid grid-cols-2 gap-4 lg:grid-cols-5">
+        <Mini label="Customer chats handled" value={impact.chats} />
+        <Mini label="Replies sent" value={impact.replies} />
+        <Mini label="Chats before 9am / after 9pm" value={impact.lateChats} hint="when you'd usually be closed" />
+        <Mini label="Bookings made by AI" value={impact.bookings} accent />
+        <Mini label="Value of AI bookings" value={money} hint={impact.value ? "from your service prices" : "add prices in Services"} accent />
+      </div>
+      <p className="mt-5 text-sm text-muted">
+        That's about <span className="font-semibold text-text">{impact.hoursSaved} hours</span> of typing you didn't have to do.
+      </p>
+    </section>
+  );
+}
+
+function Mini({ label, value, hint, accent }) {
+  return (
+    <div>
+      <div className={`text-[22px] font-bold leading-none tracking-tight ${accent ? "text-brand" : "text-text"}`}>{value}</div>
+      <div className="mt-1.5 text-[12px] font-medium text-muted">{label}</div>
+      {hint && <div className="text-[11px] text-muted/80">{hint}</div>}
     </div>
   );
 }
