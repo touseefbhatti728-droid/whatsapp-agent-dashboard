@@ -8,7 +8,7 @@ import { usePush } from "@/lib/use-push";
 import { toast } from "@/lib/toast";
 import { NotifIcon, timeAgo } from "@/components/notif-meta";
 
-const POLL_MS = 20000;
+const POLL_MS = 60000;
 
 // Soft two-note chime made with Web Audio (no sound file needed).
 function chime() {

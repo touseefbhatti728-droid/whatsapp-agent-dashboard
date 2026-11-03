@@ -7,7 +7,7 @@ export default async function CalendarPage() {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect("/login");
 
-  const { data: businesses } = await supabase.from("businesses").select("id, name");
+  const { data: businesses } = await supabase.from("businesses").select("id, name").eq("owner_id", user.id);
   const nameById = {};
   (businesses || []).forEach((b) => { nameById[b.id] = b.name; });
   const ids = (businesses || []).map((b) => b.id);

@@ -25,7 +25,16 @@ export default function SignupForm({ appName = "NextReply" }) {
     if (f.password.length < 6) return setError("Password must be at least 6 characters.");
     setLoading(true);
     const supabase = createClient();
-    const { data, error: signErr } = await supabase.auth.signUp({ email, password: f.password });
+    // If email confirmation is on, the confirm link returns through /auth/callback,
+    // which creates the business (name kept in user metadata) and opens onboarding.
+    const { data, error: signErr } = await supabase.auth.signUp({
+      email,
+      password: f.password,
+      options: {
+        emailRedirectTo: `${window.location.origin}/auth/callback?next=/onboarding`,
+        data: { business_name: f.name.trim() },
+      },
+    });
     if (signErr) {
       setLoading(false);
       if (/already registered|already exists|user already/i.test(signErr.message)) {
@@ -33,9 +42,9 @@ export default function SignupForm({ appName = "NextReply" }) {
       }
       return setError(signErr.message);
     }
-    if (!data.session) { setLoading(false); setNotice("Account created! Please check your email to confirm, then sign in."); return; }
+    if (!data.session) { setLoading(false); setNotice("Account created! Open the confirmation email we just sent and tap the link — you'll go straight to setup."); return; }
     const { error: bizErr } = await supabase.from("businesses").insert({
-      owner_id: data.user.id, name: f.name.trim(), status: "active",
+      owner_id: data.user.id, name: f.name.trim(), status: "active", owner_email: email,
     });
     setLoading(false);
     if (bizErr) { setError("Account made, but saving business failed: " + bizErr.message); return; }

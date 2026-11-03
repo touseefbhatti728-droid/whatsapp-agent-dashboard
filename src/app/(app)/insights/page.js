@@ -2,9 +2,9 @@ import { createClient } from "@/lib/supabase/server";
 
 export default async function InsightsPage() {
   const supabase = await createClient();
-  await supabase.auth.getUser();
+  const { data: { user } } = await supabase.auth.getUser();
 
-  const { data: businesses } = await supabase.from("businesses").select("id");
+  const { data: businesses } = await supabase.from("businesses").select("id").eq("owner_id", user.id);
   const ids = (businesses || []).map((b) => b.id);
 
   let bookings = [];

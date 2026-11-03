@@ -46,7 +46,7 @@ export default function CampaignsManager({ businesses, campaigns }) {
     <div className="space-y-5">
       <div className="flex flex-wrap items-center justify-between gap-3">
         {businesses.length > 1 ? (
-          <select value={selectedId} onChange={(e) => setSelectedId(e.target.value)} className="field max-w-xs">
+          <select value={selectedId} onChange={(e) => setSelectedId(businesses.find((x) => String(x.id) === e.target.value)?.id ?? e.target.value)} className="field max-w-xs">
             {businesses.map((b) => (<option key={b.id} value={b.id}>{b.name || "Unnamed business"}</option>))}
           </select>
         ) : <div />}

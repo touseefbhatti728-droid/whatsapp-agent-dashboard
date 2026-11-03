@@ -10,7 +10,7 @@ export default async function ConnectWhatsAppPage() {
 
   const { data: biz } = await supabase
     .from("businesses")
-    .select("whatsapp_number")
+    .select("whatsapp_number, meta_phone_number_id, sub_status")
     .eq("owner_id", user.id)
     .order("created_at", { ascending: true })
     .limit(1)
@@ -22,7 +22,11 @@ export default async function ConnectWhatsAppPage() {
         <h1 className="page-title">Connect WhatsApp</h1>
         <p className="page-sub">Connect the WhatsApp number your customers already message. Your AI receptionist starts replying right away.</p>
       </div>
-      <ConnectWhatsApp connectedNumber={biz?.whatsapp_number || null} />
+      {/* "Connected" only when Meta's number id is saved — a typed number alone can't send. */}
+      <ConnectWhatsApp
+        connectedNumber={biz?.meta_phone_number_id ? (biz?.whatsapp_number || "connected") : null}
+        aiOn={["active", "trialing"].includes(biz?.sub_status)}
+      />
       <WhatsAppSetupGuide />
     </div>
   );

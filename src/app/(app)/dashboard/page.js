@@ -1,5 +1,7 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { getSessionUser, getIsAdmin, getMyBusiness } from "@/lib/session";
 import BookingLink from "@/components/BookingLink";
 
 function formatWhen(ts) {
@@ -13,53 +15,68 @@ function initials(name) {
   return name.trim().split(/\s+/).slice(0, 2).map((w) => w[0]?.toUpperCase()).join("");
 }
 
+// Midnight in the business's timezone, as a UTC Date (the server runs in UTC).
+function zonedMidnight(tz, y, m, d) {
+  const guess = new Date(Date.UTC(y, m, d));
+  const offsetMs = new Date(guess.toLocaleString("en-US", { timeZone: tz })).getTime() - new Date(guess.toLocaleString("en-US", { timeZone: "UTC" })).getTime();
+  return new Date(guess.getTime() - offsetMs);
+}
+
 export default async function DashboardPage() {
+  const user = await getSessionUser();
+  if (!user) redirect("/login");
+  const [primary, isAdmin] = await Promise.all([getMyBusiness(user.id), getIsAdmin(user.id)]);
+  // A new owner without a business row finishes onboarding first.
+  if (!primary && !isAdmin) redirect("/onboarding");
+
   const supabase = await createClient();
-  await supabase.auth.getUser();
-
-  const { data: businesses } = await supabase
-    .from("businesses")
-    .select("id, name, location, whatsapp_number")
-    .order("created_at", { ascending: true });
-
-  const businessIds = (businesses || []).map((b) => b.id);
-
-  let bookings = [];
-  if (businessIds.length > 0) {
-    const { data } = await supabase
-      .from("bookings")
-      .select("id, ref_no, customer_name, customer_phone, service, start_time, business_id")
-      .in("business_id", businessIds)
-      .order("start_time", { ascending: true });
-    bookings = data || [];
-  }
-
+  const tz = primary?.timezone || "Asia/Dubai";
   const now = new Date();
-  const startToday = new Date(now); startToday.setHours(0, 0, 0, 0);
-  const endToday = new Date(startToday); endToday.setDate(endToday.getDate() + 1);
-  const startMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-  const endMonth = new Date(now.getFullYear(), now.getMonth() + 1, 1);
+  const [y, mo, d] = new Intl.DateTimeFormat("en-CA", { timeZone: tz, year: "numeric", month: "2-digit", day: "2-digit" })
+    .format(now).split("-").map(Number);
+  const startToday = zonedMidnight(tz, y, mo - 1, d);
+  const endToday = zonedMidnight(tz, y, mo - 1, d + 1);
+  const startMonth = zonedMidnight(tz, y, mo - 1, 1);
+  const endMonth = zonedMidnight(tz, y, mo, 1);
 
-  const inRange = (b, a, z) => { const t = new Date(b.start_time); return t >= a && t < z; };
-  const todayCount = bookings.filter((b) => inRange(b, startToday, endToday)).length;
-  const monthCount = bookings.filter((b) => inRange(b, startMonth, endMonth)).length;
-  const upcomingAll = bookings.filter((b) => new Date(b.start_time) >= now);
-  const upcoming = upcomingAll.slice(0, 6);
+  // Counts + the next 6 bookings, all in parallel, for this owner's business only.
+  const bizId = primary?.id || "00000000-0000-0000-0000-000000000000";
+  const base = () => supabase.from("bookings").select("id", { count: "exact", head: true }).eq("business_id", bizId);
+  const [todayRes, monthRes, totalRes, upcomingCountRes, upcomingRes, servicesRes] = await Promise.all([
+    base().gte("start_time", startToday.toISOString()).lt("start_time", endToday.toISOString()),
+    base().gte("start_time", startMonth.toISOString()).lt("start_time", endMonth.toISOString()),
+    base(),
+    base().gte("start_time", now.toISOString()),
+    supabase.from("bookings")
+      .select("id, ref_no, customer_name, customer_phone, service, start_time, business_id")
+      .eq("business_id", bizId)
+      .gte("start_time", now.toISOString())
+      .order("start_time", { ascending: true })
+      .limit(6),
+    supabase.from("services").select("id", { count: "exact", head: true }).eq("business_id", bizId),
+  ]);
+  const todayCount = todayRes.count || 0;
+  const monthCount = monthRes.count || 0;
+  const totalCount = totalRes.count || 0;
+  const upcomingCount = upcomingCountRes.count || 0;
+  const upcoming = upcomingRes.data || [];
 
-  const multi = businessIds.length > 1;
-  const primary = (businesses || [])[0];
+  const multi = false;
   const businessTitle = primary?.name || "your business";
-  const businessName = (id) => (businesses || []).find((b) => b.id === id)?.name || "—";
+  const businessName = () => primary?.name || "—";
 
-  const waConnected = !!primary?.whatsapp_number;
+  // Connected = the Meta credentials the AI needs to reply are saved (not just a typed number).
+  const waConnected = !!(primary?.meta_phone_number_id && primary?.meta_access_token);
   const waDigits = (primary?.whatsapp_number || "").replace(/\D/g, "");
-  const bookingLink = waDigits ? `https://wa.me/${waDigits}?text=${encodeURIComponent("Hi, I'd like to book an appointment")}` : "";
-  const hasBookings = bookings.length > 0;
-  const showSetup = !waConnected || !hasBookings;
+  const bookingLink = waConnected && waDigits ? `https://wa.me/${waDigits}?text=${encodeURIComponent("Hi, I'd like to book an appointment")}` : "";
+  const hasBookings = totalCount > 0;
+  const hasServices = (servicesRes.count || 0) > 0;
+  const frontDeskDone = !!(primary?.assistant_name || primary?.tone || primary?.first_greeting);
+  const showSetup = !waConnected || !hasBookings || !hasServices;
   const steps = [
-    { label: "Add your services", href: "/services", done: false },
-    { label: "Set up your AI front desk", href: "/ai-front-desk", done: false },
-    { label: "Connect your WhatsApp number", href: "/integrations", done: waConnected },
+    { label: "Add your services", href: "/services", done: hasServices },
+    { label: "Set up your AI front desk", href: "/ai-front-desk", done: frontDeskDone },
+    { label: "Connect your WhatsApp number", href: "/connect-whatsapp", done: waConnected },
     { label: "Get your first booking on WhatsApp", href: "/conversations", done: hasBookings },
   ];
   const doneCount = steps.filter((s) => s.done).length;
@@ -122,8 +139,8 @@ export default async function DashboardPage() {
       <section className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
         <Stat label="Appointments today" value={todayCount} />
         <Stat label="This month" value={monthCount} />
-        <Stat label="Total bookings" value={bookings.length} />
-        <Stat label="Upcoming" value={upcomingAll.length} accent />
+        <Stat label="Total bookings" value={totalCount} />
+        <Stat label="Upcoming" value={upcomingCount} accent />
       </section>
 
       {/* Control panel */}

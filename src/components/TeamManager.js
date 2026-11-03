@@ -35,7 +35,7 @@ export default function TeamManager({ businesses, members }) {
       {businesses.length > 1 && (
         <div className="card p-5">
           <label className="mb-1.5 block text-sm font-medium text-text">Editing business</label>
-          <select value={selectedId} onChange={(e) => setSelectedId(e.target.value)} className="field max-w-sm">
+          <select value={selectedId} onChange={(e) => setSelectedId(businesses.find((x) => String(x.id) === e.target.value)?.id ?? e.target.value)} className="field max-w-sm">
             {businesses.map((b) => (<option key={b.id} value={b.id}>{b.name || "Unnamed business"}</option>))}
           </select>
         </div>

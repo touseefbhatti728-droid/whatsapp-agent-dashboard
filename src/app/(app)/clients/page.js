@@ -12,9 +12,9 @@ function formatWhen(ts) {
 
 export default async function ClientsPage() {
   const supabase = await createClient();
-  await supabase.auth.getUser();
+  const { data: { user } } = await supabase.auth.getUser();
 
-  const { data: businesses } = await supabase.from("businesses").select("id, name");
+  const { data: businesses } = await supabase.from("businesses").select("id, name").eq("owner_id", user.id);
   const ids = (businesses || []).map((b) => b.id);
 
   let bookings = [];

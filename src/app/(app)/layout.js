@@ -6,6 +6,7 @@ import MobileNav from "@/components/MobileNav";
 import NotificationBell from "@/components/NotificationBell";
 import Toaster from "@/components/Toaster";
 import { getBranding } from "@/lib/branding";
+import { getSessionUser, getIsAdmin, getMyBusiness } from "@/lib/session";
 
 const S = { width: 19, height: 19, viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: 1.75, strokeLinecap: "round", strokeLinejoin: "round" };
 const IcCalendar = (<svg {...S}><rect x="3" y="4" width="18" height="18" rx="2.5"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>);
@@ -26,48 +27,61 @@ const IcUser = (<svg {...S}><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/
 const IcBell = (<svg {...S}><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9M13.73 21a2 2 0 0 1-3.46 0"/></svg>);
 const IcMega = (<svg {...S}><path d="M3 11v2a1 1 0 0 0 1 1h2l4 4V6L6 10H4a1 1 0 0 0-1 1z"/><path d="M14 8a4 4 0 0 1 0 8M18 5a8 8 0 0 1 0 14"/></svg>);
 
+// Start/end of "today" in the business's own timezone (the server runs in UTC).
+function todayRange(tz) {
+  const zone = tz || "Asia/Dubai";
+  const now = new Date();
+  const ymd = new Intl.DateTimeFormat("en-CA", { timeZone: zone, year: "numeric", month: "2-digit", day: "2-digit" }).format(now);
+  const asUtc = new Date(`${ymd}T00:00:00Z`);
+  const offsetMs = new Date(asUtc.toLocaleString("en-US", { timeZone: zone })).getTime() - new Date(asUtc.toLocaleString("en-US", { timeZone: "UTC" })).getTime();
+  const start = new Date(asUtc.getTime() - offsetMs);
+  return { start, end: new Date(start.getTime() + 86400000) };
+}
+
 export default async function AppLayout({ children }) {
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
+  const user = await getSessionUser();
   if (!user) redirect("/login");
 
-  const { data: profile } = await supabase.from("profiles").select("is_admin").eq("id", user.id).single();
-  const isAdmin = profile?.is_admin === true;
-  const branding = await getBranding();
+  const supabase = await createClient();
+  // Independent lookups run together instead of one after another.
+  const [isAdmin, branding, myBiz] = await Promise.all([
+    getIsAdmin(user.id),
+    getBranding(),
+    getMyBusiness(user.id),
+  ]);
   const appName = branding.app_name;
   let showChat = true;
   let aiPaused = null; // null = AI running; otherwise a reason string for the banner
-  if (!isAdmin) {
-    const { data: myBiz } = await supabase.from("businesses").select("plan, sub_status").eq("owner_id", user.id).order("created_at", { ascending: true }).limit(1).maybeSingle();
-    if (myBiz && !["active", "trialing"].includes(myBiz.sub_status)) {
+
+  const { start, end } = todayRange(myBiz?.timezone);
+  // Owners: their own business (RLS). Admins: today's bookings across the platform.
+  let todayQuery = supabase
+    .from("bookings")
+    .select("id", { count: "exact", head: true })
+    .gte("start_time", start.toISOString())
+    .lt("start_time", end.toISOString());
+  if (!isAdmin && myBiz) todayQuery = todayQuery.eq("business_id", myBiz.id);
+
+  const [todayRes, planRes] = await Promise.all([
+    todayQuery,
+    !isAdmin && myBiz?.plan
+      ? supabase.from("plans").select("chat_history").eq("name", myBiz.plan).maybeSingle()
+      : Promise.resolve({ data: null }),
+  ]);
+  const apptsToday = todayRes.count || 0;
+
+  if (!isAdmin && myBiz) {
+    if (!["active", "trialing"].includes(myBiz.sub_status)) {
       aiPaused = myBiz.sub_status === "past_due" ? "Your last payment failed, so your AI receptionist is paused. Update your card to switch it back on."
         : myBiz.sub_status === "cancelled" ? "Your subscription has ended, so your AI receptionist is paused. Pick a plan to switch it back on."
         : "Your AI receptionist is off. Start your 7-day free trial to switch it on.";
     }
-    if (myBiz) {
-      const { data: pl } = await supabase.from("plans").select("chat_history").eq("name", myBiz.plan).maybeSingle();
-      showChat = pl?.chat_history !== false;
+    if (myBiz.status === "suspended") {
+      aiPaused = "Your account is suspended, so your AI receptionist is paused. Please contact support.";
     }
+    showChat = planRes.data?.chat_history !== false;
   }
   const initial = (user.email || "?").charAt(0).toUpperCase();
-
-  // Today's appointments (for the top status bar)
-  let apptsToday = 0;
-  {
-    const { data: bizRows } = await supabase.from("businesses").select("id");
-    const ids = (bizRows || []).map((b) => b.id);
-    if (ids.length) {
-      const start = new Date(); start.setHours(0, 0, 0, 0);
-      const end = new Date(start); end.setDate(end.getDate() + 1);
-      const { count } = await supabase
-        .from("bookings")
-        .select("id", { count: "exact", head: true })
-        .in("business_id", ids)
-        .gte("start_time", start.toISOString())
-        .lt("start_time", end.toISOString());
-      apptsToday = count || 0;
-    }
-  }
 
   // Shared nav content — used by both desktop sidebar and mobile drawer
   const navContent = (
@@ -158,7 +172,7 @@ export default async function AppLayout({ children }) {
               <div className="mb-6 flex flex-wrap items-center gap-3 rounded-2xl border border-amber-300/60 bg-amber-50 px-4 py-3 text-sm text-amber-900">
                 <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-amber-400/30">!</span>
                 <p className="min-w-0 flex-1">{aiPaused}</p>
-                <a href="/billing" className="btn-brand shrink-0 px-4 py-2 text-sm">Go to Billing</a>
+                {myBiz?.status !== "suspended" && <a href="/billing" className="btn-brand shrink-0 px-4 py-2 text-sm">Go to Billing</a>}
               </div>
             )}
             {children}

@@ -1,3 +1,4 @@
+import { cache } from "react";
 import { createClient } from "@/lib/supabase/server";
 
 function hexToRgb(hex) {
@@ -16,7 +17,8 @@ export function deriveVars(hex) {
   return { brandRgb: triplet(r, g, b), brandDarkRgb: triplet(dark[0], dark[1], dark[2]), brandTintRgb: triplet(tint[0], tint[1], tint[2]) };
 }
 
-export async function getBranding() {
+// cache(): root layout and app layout both need branding — fetch it once per request
+export const getBranding = cache(async function getBranding() {
   const fallback = { app_name: "Booking Agent", brand_color: "#0f9d6a" };
   try {
     const supabase = await createClient();
@@ -27,4 +29,4 @@ export async function getBranding() {
   } catch {
     return { ...fallback, ...deriveVars(fallback.brand_color) };
   }
-}
+});

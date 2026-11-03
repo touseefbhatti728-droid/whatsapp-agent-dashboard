@@ -32,21 +32,28 @@ export default async function ConversationsPage() {
     }
   }
 
-  const { data: businesses } = await supabase.from("businesses").select("id, name");
+  const { data: businesses } = await supabase.from("businesses").select("id, name").eq("owner_id", user.id);
   const nameById = {};
   (businesses || []).forEach((b) => { nameById[b.id] = b.name; });
 
   // Map phone -> customer name (from bookings)
-  const { data: bookings } = await supabase.from("bookings").select("customer_phone, customer_name, business_id");
+  // Only this owner's business, and the newest 2,000 messages (oldest-first broke past 1,000 rows).
+  const ids = (businesses || []).map((b) => b.id);
+  const scope = ids.length ? ids : [-1];
+  const [{ data: bookings }, { data: newest }] = await Promise.all([
+    supabase.from("bookings").select("customer_phone, customer_name, business_id").in("business_id", scope),
+    supabase
+      .from("messages")
+      .select("business_id, customer_phone, role, content, created_at")
+      .in("business_id", scope)
+      .order("created_at", { ascending: false })
+      .limit(2000),
+  ]);
   const phoneName = {};
   (bookings || []).forEach((b) => {
     if (b.customer_phone && b.customer_name) phoneName[`${b.business_id}::${b.customer_phone}`] = b.customer_name;
   });
-
-  const { data: messages } = await supabase
-    .from("messages")
-    .select("business_id, customer_phone, role, content, created_at")
-    .order("created_at", { ascending: true });
+  const messages = (newest || []).reverse();
 
   // Group into conversations by business + phone
   const map = new Map();
