@@ -2,16 +2,19 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import ConnectWhatsApp from "@/components/ConnectWhatsApp";
 import WhatsAppSetupGuide from "@/components/WhatsAppSetupGuide";
+import { getActiveBusiness } from "@/lib/session";
 
 export default async function ConnectWhatsAppPage() {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect("/login");
+  // owners: their business · admins: the customer they are managing
+  const activeBizId = (await getActiveBusiness(user?.id))?.id ?? -1;
 
   const { data: biz } = await supabase
     .from("businesses")
     .select("whatsapp_number, meta_phone_number_id, sub_status")
-    .eq("owner_id", user.id)
+    .eq("id", activeBizId)
     .order("created_at", { ascending: true })
     .limit(1)
     .maybeSingle();

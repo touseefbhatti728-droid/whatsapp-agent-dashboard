@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
+import { getActiveBusiness } from "@/lib/session";
 
 function initials(name) {
   if (!name) return "•";
@@ -13,8 +14,10 @@ function formatWhen(ts) {
 export default async function ClientsPage() {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
+  // owners: their business · admins: the customer they are managing
+  const activeBizId = (await getActiveBusiness(user?.id))?.id ?? -1;
 
-  const { data: businesses } = await supabase.from("businesses").select("id, name").eq("owner_id", user.id);
+  const { data: businesses } = await supabase.from("businesses").select("id, name").eq("id", activeBizId);
   const ids = (businesses || []).map((b) => b.id);
 
   let bookings = [];

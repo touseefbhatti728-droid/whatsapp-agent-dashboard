@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { adminDb } from "@/lib/admin-db";
+import { getActiveBusiness } from "@/lib/session";
 
 // "2026-11-05" + "14:30" in the business's timezone -> UTC Date
 function zonedToUtc(date, time, tz) {
@@ -12,11 +13,60 @@ function zonedToUtc(date, time, tz) {
   return new Date(guess.getTime() - offsetMs);
 }
 
+// Confirms the booking belongs to the business this user may manage (owner, or admin managing it).
+async function ownedBooking(supabase, user, bookingId) {
+  const activeBizId = (await getActiveBusiness(user?.id))?.id ?? -1;
+  const { data } = await supabase.from("bookings").select("id, business_id").eq("id", bookingId).maybeSingle();
+  if (!data || String(data.business_id) !== String(activeBizId)) return null;
+  return data;
+}
+
+export async function updateAppointment(input) {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { ok: false, error: "Not signed in" };
+  const booking = await ownedBooking(supabase, user, input?.id);
+  if (!booking) return { ok: false, error: "Booking not found." };
+
+  const { data: biz } = await supabase.from("businesses").select("timezone").eq("id", booking.business_id).maybeSingle();
+  const patch = {};
+  if (typeof input.name === "string" && input.name.trim()) patch.customer_name = input.name.trim();
+  if (typeof input.phone === "string") patch.customer_phone = input.phone.replace(/\D/g, "") || null;
+  if (typeof input.service === "string") patch.service = input.service.trim() || null;
+  if (typeof input.notes === "string") patch.notes = input.notes.trim() || null;
+  if (/^\d{4}-\d{2}-\d{2}$/.test(String(input.date || "")) && /^\d{2}:\d{2}$/.test(String(input.time || ""))) {
+    const start = zonedToUtc(input.date, input.time, biz?.timezone || "Asia/Dubai");
+    if (!isNaN(start)) patch.start_time = start.toISOString();
+  }
+  const db = adminDb();
+  if (!db) return { ok: false, error: "Server not configured (SUPABASE_SERVICE_ROLE_KEY missing)." };
+  const { error } = await db.from("bookings").update(patch).eq("id", booking.id);
+  if (error) return { ok: false, error: error.message };
+  revalidatePath("/calendar"); revalidatePath("/dashboard"); revalidatePath("/clients");
+  return { ok: true };
+}
+
+export async function cancelAppointment(id) {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { ok: false, error: "Not signed in" };
+  const booking = await ownedBooking(supabase, user, id);
+  if (!booking) return { ok: false, error: "Booking not found." };
+  const db = adminDb();
+  if (!db) return { ok: false, error: "Server not configured (SUPABASE_SERVICE_ROLE_KEY missing)." };
+  const { error } = await db.from("bookings").delete().eq("id", booking.id);
+  if (error) return { ok: false, error: error.message };
+  revalidatePath("/calendar"); revalidatePath("/dashboard"); revalidatePath("/clients");
+  return { ok: true };
+}
+
 // Owner adds an appointment by hand (walk-in, phone call, Instagram DM...).
 export async function createAppointment(input) {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return { ok: false, error: "Not signed in" };
+  // owners: their business · admins: the customer they are managing
+  const activeBizId = (await getActiveBusiness(user?.id))?.id ?? -1;
 
   const name = String(input?.name || "").trim();
   const phone = String(input?.phone || "").replace(/\D/g, "");
@@ -29,7 +79,7 @@ export async function createAppointment(input) {
 
   const { data: biz } = await supabase
     .from("businesses").select("id, timezone")
-    .eq("owner_id", user.id).order("created_at", { ascending: true }).limit(1).maybeSingle();
+    .eq("id", activeBizId).order("created_at", { ascending: true }).limit(1).maybeSingle();
   if (!biz) return { ok: false, error: "No business found for this account." };
 
   const start = zonedToUtc(date, time, biz.timezone || "Asia/Dubai");

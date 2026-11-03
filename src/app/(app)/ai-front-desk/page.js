@@ -1,16 +1,19 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import AiFrontDeskForm from "@/components/AiFrontDeskForm";
+import { getActiveBusiness } from "@/lib/session";
 
 export default async function AiFrontDeskPage() {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect("/login");
+  // owners: their business · admins: the customer they are managing
+  const activeBizId = (await getActiveBusiness(user?.id))?.id ?? -1;
 
   const { data: businesses } = await supabase
     .from("businesses")
     .select("id, name, whatsapp_number, assistant_name, primary_language, tone, reply_length, first_greeting, final_message, use_formal, use_emoji, ai_hours_enabled, ai_hours, after_hours_message, timezone, handover_pause_minutes, handover_rules, handover_notify")
-    .eq("owner_id", user.id)
+    .eq("id", activeBizId)
     .order("created_at", { ascending: true });
 
   return (

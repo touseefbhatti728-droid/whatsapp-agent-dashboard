@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import { getSessionUser, getIsAdmin, getMyBusiness } from "@/lib/session";
+import { getSessionUser, getIsAdmin, getActiveBusiness } from "@/lib/session";
 import BookingLink from "@/components/BookingLink";
 
 function formatWhen(ts) {
@@ -25,7 +25,7 @@ function zonedMidnight(tz, y, m, d) {
 export default async function DashboardPage() {
   const user = await getSessionUser();
   if (!user) redirect("/login");
-  const [primary, isAdmin] = await Promise.all([getMyBusiness(user.id), getIsAdmin(user.id)]);
+  const [primary, isAdmin] = await Promise.all([getActiveBusiness(user.id), getIsAdmin(user.id)]);
   // A new owner without a business row finishes onboarding first.
   if (!primary && !isAdmin) redirect("/onboarding");
 

@@ -2,6 +2,7 @@
 
 import { createClient } from "@/lib/supabase/server";
 import { notifyBusiness } from "@/lib/notify";
+import { getActiveBusiness } from "@/lib/session";
 
 const GV = process.env.FB_GRAPH_VERSION || "v21.0";
 
@@ -13,6 +14,8 @@ export async function connectWhatsApp({ code, phoneNumberId, wabaId, coexistence
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return { ok: false, error: "Not signed in" };
+  // owners: their business · admins: the customer they are managing
+  const activeBizId = (await getActiveBusiness(user?.id))?.id ?? -1;
   if (!code) return { ok: false, error: "Missing authorization code" };
 
   const appId = process.env.FB_APP_ID;
@@ -61,7 +64,7 @@ export async function connectWhatsApp({ code, phoneNumberId, wabaId, coexistence
 
   // 1c) One number can only belong to one business.
   const { data: taken } = await supabase.from("businesses").select("id, owner_id").eq("meta_phone_number_id", String(phoneNumberId)).limit(1).maybeSingle();
-  if (taken && taken.owner_id !== user.id) {
+  if (taken && String(taken.id) !== String(activeBizId)) {
     return { ok: false, error: "This WhatsApp number is already connected to another account. Contact support if it's yours." };
   }
 
@@ -131,7 +134,7 @@ export async function connectWhatsApp({ code, phoneNumberId, wabaId, coexistence
   const { data: biz } = await supabase
     .from("businesses")
     .select("id, sub_status")
-    .eq("owner_id", user.id)
+    .eq("id", activeBizId)
     .order("created_at", { ascending: true })
     .limit(1)
     .maybeSingle();
