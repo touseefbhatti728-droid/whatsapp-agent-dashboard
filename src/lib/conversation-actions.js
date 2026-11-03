@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { adminDb } from "@/lib/admin-db";
+import { getActiveBusiness } from "@/lib/session";
 
 const GV = process.env.FB_GRAPH_VERSION || "v22.0";
 const DAY_MS = 24 * 60 * 60 * 1000;
@@ -12,6 +13,8 @@ export async function sendReply({ phone, text }) {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return { ok: false, error: "Not signed in" };
+  // owners: their business · admins: the customer they are managing
+  const activeBizId = (await getActiveBusiness(user?.id))?.id ?? -1;
 
   const to = String(phone || "").replace(/\D/g, "");
   const body = String(text || "").trim();
@@ -21,7 +24,7 @@ export async function sendReply({ phone, text }) {
 
   const { data: biz } = await supabase
     .from("businesses").select("id, meta_phone_number_id, meta_access_token")
-    .eq("owner_id", user.id).order("created_at", { ascending: true }).limit(1).maybeSingle();
+    .eq("id", activeBizId).order("created_at", { ascending: true }).limit(1).maybeSingle();
   if (!biz) return { ok: false, error: "No business found for this account." };
   if (!biz.meta_phone_number_id || !biz.meta_access_token) {
     return { ok: false, error: "Connect WhatsApp first (menu → Connect WhatsApp)." };

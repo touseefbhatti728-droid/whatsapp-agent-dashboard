@@ -3,6 +3,7 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { setBusinessStatus } from "../../actions";
 import SubscriptionForm from "@/components/SubscriptionForm";
+import { manageBusiness } from "@/lib/manage-actions";
 
 function when(ts) {
   if (!ts) return "—";
@@ -47,6 +48,12 @@ export default async function ClientDetail({ params }) {
             <p className="mt-0.5 text-sm text-muted">{b.location || "No location set"}</p>
           </div>
         </div>
+        <div className="flex flex-wrap items-center gap-2">
+        {/* Opens the full customer dashboard for this business — every page and every change applies to them */}
+        <form action={manageBusiness}>
+          <input type="hidden" name="id" value={b.id} />
+          <button className="btn-brand px-4 py-2.5 text-sm">Manage as customer</button>
+        </form>
         <form action={setBusinessStatus}>
           <input type="hidden" name="id" value={b.id} />
           <input type="hidden" name="status" value={suspended ? "active" : "suspended"} />
@@ -58,6 +65,7 @@ export default async function ClientDetail({ params }) {
             {suspended ? "Activate account" : "Suspend account"}
           </button>
         </form>
+        </div>
       </div>
 
       {/* Subscription */}

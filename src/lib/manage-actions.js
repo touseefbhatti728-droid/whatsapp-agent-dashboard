@@ -1,0 +1,20 @@
+"use server";
+
+import { cookies } from "next/headers";
+import { redirect } from "next/navigation";
+import { getSessionUser, getIsAdmin, MANAGE_COOKIE } from "@/lib/session";
+
+// Admin opens the whole customer dashboard for one business ("Manage as customer").
+export async function manageBusiness(formData) {
+  const user = await getSessionUser();
+  if (!user || !(await getIsAdmin(user.id))) redirect("/dashboard");
+  const id = String(formData.get("id") || "");
+  if (!/^\d+$/.test(id)) redirect("/admin/clients");
+  (await cookies()).set(MANAGE_COOKIE, id, { httpOnly: true, sameSite: "lax", secure: true, path: "/", maxAge: 60 * 60 * 8 });
+  redirect("/dashboard");
+}
+
+export async function stopManaging() {
+  (await cookies()).delete(MANAGE_COOKIE);
+  redirect("/admin/clients");
+}

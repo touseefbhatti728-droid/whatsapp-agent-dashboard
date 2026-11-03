@@ -6,7 +6,8 @@ import MobileNav from "@/components/MobileNav";
 import NotificationBell from "@/components/NotificationBell";
 import Toaster from "@/components/Toaster";
 import { getBranding } from "@/lib/branding";
-import { getSessionUser, getIsAdmin, getMyBusiness } from "@/lib/session";
+import { getSessionUser, getIsAdmin, getActiveBusiness } from "@/lib/session";
+import { stopManaging } from "@/lib/manage-actions";
 
 const S = { width: 19, height: 19, viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: 1.75, strokeLinecap: "round", strokeLinejoin: "round" };
 const IcCalendar = (<svg {...S}><rect x="3" y="4" width="18" height="18" rx="2.5"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>);
@@ -47,30 +48,36 @@ export default async function AppLayout({ children }) {
   const [isAdmin, branding, myBiz] = await Promise.all([
     getIsAdmin(user.id),
     getBranding(),
-    getMyBusiness(user.id),
+    getActiveBusiness(user.id), // admins: the customer they're managing, else their own
   ]);
+  const managing = !!myBiz?._managed;
   const appName = branding.app_name;
   let showChat = true;
   let aiPaused = null; // null = AI running; otherwise a reason string for the banner
 
   const { start, end } = todayRange(myBiz?.timezone);
-  // Owners: their own business (RLS). Admins: today's bookings across the platform.
+  // Owners / managed customer: that business. Admins (not managing): the whole platform.
   let todayQuery = supabase
     .from("bookings")
     .select("id", { count: "exact", head: true })
     .gte("start_time", start.toISOString())
     .lt("start_time", end.toISOString());
-  if (!isAdmin && myBiz) todayQuery = todayQuery.eq("business_id", myBiz.id);
+  if ((!isAdmin || managing) && myBiz) todayQuery = todayQuery.eq("business_id", myBiz.id);
 
   const [todayRes, planRes] = await Promise.all([
     todayQuery,
-    !isAdmin && myBiz?.plan
+    myBiz?.plan
       ? supabase.from("plans").select("chat_history").eq("name", myBiz.plan).maybeSingle()
       : Promise.resolve({ data: null }),
   ]);
   const apptsToday = todayRes.count || 0;
 
-  if (!isAdmin && myBiz) {
+  // Plan features. Admins always get everything; customers get what their plan includes.
+  const planName = String(myBiz?.plan || "");
+  const hasChat = isAdmin || planRes.data?.chat_history === true;
+  const hasWebhooks = isAdmin || /^business$/i.test(planName);
+
+  if ((!isAdmin || managing) && myBiz) {
     if (!["active", "trialing"].includes(myBiz.sub_status)) {
       aiPaused = myBiz.sub_status === "past_due" ? "Your last payment failed, so your AI receptionist is paused. Update your card to switch it back on."
         : myBiz.sub_status === "cancelled" ? "Your subscription has ended, so your AI receptionist is paused. Pick a plan to switch it back on."
@@ -79,30 +86,47 @@ export default async function AppLayout({ children }) {
     if (myBiz.status === "suspended") {
       aiPaused = "Your account is suspended, so your AI receptionist is paused. Please contact support.";
     }
-    showChat = planRes.data?.chat_history !== false;
   }
   const initial = (user.email || "?").charAt(0).toUpperCase();
 
-  // Shared nav content — used by both desktop sidebar and mobile drawer
+  const Group = ({ title, children: items }) => (
+    <div className="mt-6 first:mt-7">
+      <p className="px-3 pb-1.5 text-[10.5px] font-semibold uppercase tracking-[0.16em] text-white/35">{title}</p>
+      <nav className="space-y-1">{items}</nav>
+    </div>
+  );
+
+  // Shared nav content — used by both desktop sidebar and mobile drawer.
+  // Ordered the way a new business sets up and then works day to day.
   const navContent = (
     <>
-      <nav className="mt-7 space-y-1">
+      <Group title="Set up">
         <NavItem href="/dashboard" label="Overview" icon={IcGrid} exact />
         <NavItem href="/connect-whatsapp" label="Connect WhatsApp" icon={(<svg {...S}><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg>)} />
-        <NavItem href="/calendar" label="Calendar" icon={IcCalendar} />
-        <NavItem href="/clients" label="Clients" icon={IcUsers} />
-        {showChat && <NavItem href="/conversations" label="Conversations" icon={IcChat} />}
         <NavItem href="/ai-front-desk" label="AI front desk" icon={IcRobot} />
         <NavItem href="/services" label="Services" icon={IcTag} />
-        <NavItem href="/team" label="Team" icon={IcUser} />
         <NavItem href="/knowledge" label="Knowledge" icon={IcBook} />
+        <NavItem href="/team" label="Team" icon={IcUser} />
+      </Group>
+      <Group title="Daily work">
+        <NavItem href="/calendar" label="Calendar" icon={IcCalendar} />
+        <NavItem href="/clients" label="Clients" icon={IcUsers} />
+        {hasChat
+          ? <NavItem href="/conversations" label="Conversations" icon={IcChat} />
+          : <NavItem href="/billing" label="Conversations" icon={IcChat} badge="Pro" />}
+      </Group>
+      <Group title="Grow">
         <NavItem href="/marketing" label="Marketing" icon={IcMega} />
         <NavItem href="/insights" label="Insights" icon={IcChart} />
+        {hasWebhooks
+          ? <NavItem href="/integrations" label="Integrations" icon={IcPlug} />
+          : <NavItem href="/billing" label="Integrations" icon={IcPlug} badge="Business" />}
+      </Group>
+      <Group title="Account">
         <NavItem href="/settings" label="Settings" icon={IcCog} />
         <NavItem href="/notifications" label="Notifications" icon={IcBell} />
-        <NavItem href="/integrations" label="Integrations" icon={IcPlug} />
         <NavItem href="/billing" label="Billing" icon={IcCard} />
-      </nav>
+      </Group>
 
       {isAdmin && (
         <div className="mt-7">
@@ -168,6 +192,13 @@ export default async function AppLayout({ children }) {
         {/* Main */}
         <main className="flex-1 px-5 pb-16 pt-20 md:px-12 md:pt-8">
           <div className="mx-auto max-w-5xl">
+            {managing && (
+              <div className="mb-6 flex flex-wrap items-center gap-3 rounded-2xl border border-brand/30 bg-brand-tint px-4 py-3 text-sm text-brand-dark">
+                <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-brand text-xs font-bold text-white">A</span>
+                <p className="min-w-0 flex-1">You're managing <b>{myBiz.name || "this customer"}</b> as admin. Every page and every change now applies to their account.</p>
+                <form action={stopManaging}><button className="btn-ghost shrink-0 px-4 py-2 text-sm">Exit to admin</button></form>
+              </div>
+            )}
             {aiPaused && (
               <div className="mb-6 flex flex-wrap items-center gap-3 rounded-2xl border border-amber-300/60 bg-amber-50 px-4 py-3 text-sm text-amber-900">
                 <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-amber-400/30">!</span>

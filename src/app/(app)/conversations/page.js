@@ -1,17 +1,20 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import ConversationsView from "@/components/ConversationsView";
+import { getActiveBusiness } from "@/lib/session";
 
 export default async function ConversationsPage() {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect("/login");
+  // owners: their business · admins: the customer they are managing
+  const activeBizId = (await getActiveBusiness(user?.id))?.id ?? -1;
 
   const { data: profile } = await supabase.from("profiles").select("is_admin").eq("id", user.id).single();
   const isAdmin = profile?.is_admin === true;
 
   if (!isAdmin) {
-    const { data: myBiz } = await supabase.from("businesses").select("plan").eq("owner_id", user.id).order("created_at", { ascending: true }).limit(1).maybeSingle();
+    const { data: myBiz } = await supabase.from("businesses").select("plan").eq("id", activeBizId).order("created_at", { ascending: true }).limit(1).maybeSingle();
     if (myBiz) {
       const { data: pl } = await supabase.from("plans").select("chat_history").eq("name", myBiz.plan).maybeSingle();
       if (pl?.chat_history === false) {
@@ -32,7 +35,7 @@ export default async function ConversationsPage() {
     }
   }
 
-  const { data: businesses } = await supabase.from("businesses").select("id, name").eq("owner_id", user.id);
+  const { data: businesses } = await supabase.from("businesses").select("id, name").eq("id", activeBizId);
   const nameById = {};
   (businesses || []).forEach((b) => { nameById[b.id] = b.name; });
 

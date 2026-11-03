@@ -1,4 +1,5 @@
 import { cache } from "react";
+import { cookies } from "next/headers";
 import { createClient } from "@/lib/supabase/server";
 
 // One auth + profile lookup per request, shared by layouts and pages
@@ -14,6 +15,24 @@ export const getIsAdmin = cache(async (userId) => {
   const supabase = await createClient();
   const { data } = await supabase.from("profiles").select("is_admin").eq("id", userId).maybeSingle();
   return data?.is_admin === true;
+});
+
+export const MANAGE_COOKIE = "nr_manage_biz";
+
+// The business every customer page works on:
+//  - owners: their own business
+//  - admins: the customer they chose with "Manage as customer" (cookie), else their own.
+export const getActiveBusiness = cache(async (userId) => {
+  if (!userId) return null;
+  if (await getIsAdmin(userId)) {
+    const id = (await cookies()).get(MANAGE_COOKIE)?.value;
+    if (id) {
+      const supabase = await createClient();
+      const { data } = await supabase.from("businesses").select("*").eq("id", id).maybeSingle();
+      if (data) return { ...data, _managed: true };
+    }
+  }
+  return getMyBusiness(userId);
 });
 
 // The signed-in owner's own business. Admins can read every business through RLS,
