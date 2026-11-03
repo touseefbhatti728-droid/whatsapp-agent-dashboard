@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { sendReply } from "@/lib/conversation-actions";
+import { toast } from "@/lib/toast";
 
 function initials(s) {
   if (!s) return "•";
@@ -33,6 +34,7 @@ function ReplyBox({ conv, onSent }) {
     setBusy(false);
     if (!r?.ok) { setErr(r?.error || "Couldn't send."); return; }
     onSent(text.trim());
+    toast.success("Sent", "The AI is paused for this chat so you can talk to the customer.");
     setText("");
     router.refresh();
   }

@@ -55,6 +55,13 @@ export async function sendReply({ phone, text }) {
   const db = adminDb();
   if (db) {
     await db.from("messages").insert({ business_id: biz.id, customer_phone: to, role: "assistant", content: body });
+    // A person has taken over this chat: keep the AI quiet for the handover pause (default 2 h).
+    const { data: b2 } = await db.from("businesses").select("handover_pause_minutes").eq("id", biz.id).maybeSingle();
+    const minutes = Number(b2?.handover_pause_minutes) > 0 ? Number(b2.handover_pause_minutes) : 120;
+    await db.from("ai_pauses").upsert(
+      { business_id: biz.id, customer_phone: to, until: new Date(Date.now() + minutes * 60000).toISOString(), reason: "owner_replied_in_dashboard" },
+      { onConflict: "business_id,customer_phone" },
+    );
   }
   revalidatePath("/conversations");
   return { ok: true };

@@ -1,5 +1,7 @@
 "use client";
 
+import ConfirmButton from "@/components/ConfirmButton";
+
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { addTeamMember, updateTeamMember, deleteTeamMember } from "@/lib/team-actions";
@@ -82,7 +84,7 @@ function Row({ member, onChanged }) {
 
   async function save() { setBusy(true); await updateTeamMember({ id: member.id, ...row }); setBusy(false); onChanged(); }
   async function toggle() { setBusy(true); await updateTeamMember({ id: member.id, active: !member.active }); setBusy(false); onChanged(); }
-  async function remove() { if (!confirm(`Remove ${member.name}?`)) return; setBusy(true); await deleteTeamMember(member.id); setBusy(false); onChanged(); }
+  async function remove() { setBusy(true); await deleteTeamMember(member.id); setBusy(false); onChanged(); }
 
   return (
     <div className={`flex flex-wrap items-center gap-3 p-4 md:px-5 ${member.active ? "" : "opacity-60"}`}>
@@ -94,7 +96,7 @@ function Row({ member, onChanged }) {
         <button onClick={toggle} disabled={busy} className={`rounded-lg px-2.5 py-1.5 text-xs font-semibold ${member.active ? "bg-brand-tint text-brand-dark" : "bg-canvas text-muted"}`}>
           {member.active ? "Active" : "Hidden"}
         </button>
-        <button onClick={remove} disabled={busy} className="rounded-lg border border-line px-2.5 py-1.5 text-xs font-semibold text-muted hover:text-red-500">Remove</button>
+        <ConfirmButton onConfirm={remove} disabled={busy} label="Remove" confirmLabel="Yes, remove" className="rounded-lg border border-line px-2.5 py-1.5 text-xs font-semibold text-muted hover:text-red-500" />
       </div>
     </div>
   );
