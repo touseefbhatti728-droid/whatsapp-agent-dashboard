@@ -15,7 +15,7 @@ export async function connectWhatsApp({ code, phoneNumberId, wabaId, coexistence
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return { ok: false, error: "Not signed in" };
   // owners: their business · admins: the customer they are managing
-  const activeBizId = (await getActiveBusiness(user?.id))?.id ?? -1;
+  const activeBizId = (await getActiveBusiness(user?.id))?.id ?? "00000000-0000-0000-0000-000000000000"; // no business -> matches nothing
   if (!code) return { ok: false, error: "Missing authorization code" };
 
   const appId = process.env.FB_APP_ID;

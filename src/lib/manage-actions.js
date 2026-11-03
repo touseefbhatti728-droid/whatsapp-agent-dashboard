@@ -9,7 +9,8 @@ export async function manageBusiness(formData) {
   const user = await getSessionUser();
   if (!user || !(await getIsAdmin(user.id))) redirect("/dashboard");
   const id = String(formData.get("id") || "");
-  if (!/^\d+$/.test(id)) redirect("/admin/clients");
+  // Business ids are UUIDs — accept only that shape.
+  if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id)) redirect("/admin/clients");
   (await cookies()).set(MANAGE_COOKIE, id, { httpOnly: true, sameSite: "lax", secure: true, path: "/", maxAge: 60 * 60 * 8 });
   redirect("/dashboard");
 }

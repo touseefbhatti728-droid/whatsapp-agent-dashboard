@@ -9,7 +9,7 @@ export default async function ConnectWhatsAppPage() {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect("/login");
   // owners: their business · admins: the customer they are managing
-  const activeBizId = (await getActiveBusiness(user?.id))?.id ?? -1;
+  const activeBizId = (await getActiveBusiness(user?.id))?.id ?? "00000000-0000-0000-0000-000000000000"; // no business -> matches nothing
 
   const { data: biz } = await supabase
     .from("businesses")

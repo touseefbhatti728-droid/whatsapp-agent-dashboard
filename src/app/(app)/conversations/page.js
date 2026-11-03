@@ -8,7 +8,7 @@ export default async function ConversationsPage() {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect("/login");
   // owners: their business · admins: the customer they are managing
-  const activeBizId = (await getActiveBusiness(user?.id))?.id ?? -1;
+  const activeBizId = (await getActiveBusiness(user?.id))?.id ?? "00000000-0000-0000-0000-000000000000"; // no business -> matches nothing
 
   const { data: profile } = await supabase.from("profiles").select("is_admin").eq("id", user.id).single();
   const isAdmin = profile?.is_admin === true;
@@ -42,7 +42,7 @@ export default async function ConversationsPage() {
   // Map phone -> customer name (from bookings)
   // Only this owner's business, and the newest 2,000 messages (oldest-first broke past 1,000 rows).
   const ids = (businesses || []).map((b) => b.id);
-  const scope = ids.length ? ids : [-1];
+  const scope = ids.length ? ids : ["00000000-0000-0000-0000-000000000000"];
   const [{ data: bookings }, { data: newest }] = await Promise.all([
     supabase.from("bookings").select("customer_phone, customer_name, business_id").in("business_id", scope),
     supabase
