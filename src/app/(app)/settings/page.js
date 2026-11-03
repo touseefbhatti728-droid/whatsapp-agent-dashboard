@@ -9,7 +9,8 @@ export default async function SettingsPage() {
 
   const { data: businesses } = await supabase
     .from("businesses")
-    .select("id, name, location, hours, services, booking, faq, whatsapp_number, calendar_id")
+    .select("id, name, location, hours, services, booking, faq, whatsapp_number, meta_phone_number_id, calendar_id")
+    .eq("owner_id", user.id)
     .order("created_at", { ascending: true });
 
   return (

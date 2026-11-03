@@ -10,6 +10,7 @@ export default async function AiFrontDeskPage() {
   const { data: businesses } = await supabase
     .from("businesses")
     .select("id, name, whatsapp_number, assistant_name, primary_language, tone, reply_length, first_greeting, final_message, use_formal, use_emoji, ai_hours_enabled, ai_hours, after_hours_message, timezone, handover_pause_minutes, handover_rules, handover_notify")
+    .eq("owner_id", user.id)
     .order("created_at", { ascending: true });
 
   return (

@@ -32,13 +32,16 @@ export default function SettingsForm({ businesses }) {
   const current = businesses.find((b) => b.id === selectedId) || {};
   const set = (k, v) => { setForm((f) => ({ ...f, [k]: v })); setSaved(false); };
 
+  const [error, setError] = useState("");
   async function save() {
     setSaving(true);
-    await saveBusinessInfo({ id: selectedId, ...form });
+    setError("");
+    const res = await saveBusinessInfo({ id: selectedId, ...form });
     setSaving(false);
-    setSaved(true);
-    router.refresh();
+    if (res && res.ok) { setSaved(true); router.refresh(); }
+    else setError((res && res.error) || "Couldn't save. Please try again.");
   }
+  const waConnected = !!current.meta_phone_number_id;
 
   return (
     <div className="space-y-6">
@@ -47,7 +50,7 @@ export default function SettingsForm({ businesses }) {
           <label className="mb-1.5 block text-sm font-medium text-text">Editing business</label>
           <select
             value={selectedId}
-            onChange={(e) => setSelectedId(e.target.value)}
+            onChange={(e) => setSelectedId(businesses.find((x) => String(x.id) === e.target.value)?.id ?? e.target.value)}
             className="field max-w-sm"
           >
             {businesses.map((b) => (
@@ -62,12 +65,12 @@ export default function SettingsForm({ businesses }) {
         <h2 className="text-sm font-semibold text-text">WhatsApp connection</h2>
         <div className="mt-4 flex items-center justify-between rounded-xl bg-canvas px-4 py-3">
           <div>
-            <p className="text-sm font-medium text-text">{current.whatsapp_number || "No number connected"}</p>
-            <p className="text-xs text-muted">Managed by your provider</p>
+            <p className="text-sm font-medium text-text">{waConnected && current.whatsapp_number ? "+" + String(current.whatsapp_number).replace(/\D/g, "") : "No number connected"}</p>
+            <a href="/connect-whatsapp" className="text-xs font-semibold text-brand hover:text-brand-dark">{waConnected ? "Manage connection" : "Connect WhatsApp"}</a>
           </div>
-          {current.whatsapp_number
+          {waConnected
             ? <span className="pill bg-brand-tint text-brand-dark"><span className="h-1.5 w-1.5 rounded-full bg-brand" /> Connected</span>
-            : <span className="pill bg-canvas text-muted">Not set</span>}
+            : <span className="pill bg-canvas text-muted">Not connected</span>}
         </div>
       </div>
 
@@ -100,6 +103,7 @@ export default function SettingsForm({ businesses }) {
           {saving ? "Saving…" : "Save changes"}
         </button>
         {saved && <span className="text-sm font-medium text-brand">✓ Saved</span>}
+        {error && <span className="text-sm font-medium text-red-600">{error}</span>}
       </div>
     </div>
   );

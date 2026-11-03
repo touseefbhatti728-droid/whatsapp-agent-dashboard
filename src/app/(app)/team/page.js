@@ -10,6 +10,7 @@ export default async function TeamPage() {
   const { data: businesses } = await supabase
     .from("businesses")
     .select("id, name")
+    .eq("owner_id", user.id)
     .order("created_at", { ascending: true });
 
   const ids = (businesses || []).map((b) => b.id);

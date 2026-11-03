@@ -32,7 +32,7 @@ export default function BookingLink({ link, connected }) {
           ) : (
             <div className="mt-3 rounded-xl border border-line bg-canvas/50 px-3.5 py-3 text-sm text-muted">
               Connect your WhatsApp number to get your booking link.{" "}
-              <a href="/integrations" className="font-semibold text-brand hover:text-brand-dark">Connect WhatsApp</a>
+              <a href="/connect-whatsapp" className="font-semibold text-brand hover:text-brand-dark">Connect WhatsApp</a>
             </div>
           )}
         </div>

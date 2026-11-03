@@ -2,8 +2,12 @@
 
 import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
+import { getSessionUser, getIsAdmin } from "@/lib/session";
 
 export async function saveBranding(payload) {
+  // Branding renames the app for everyone — admins only.
+  const user = await getSessionUser();
+  if (!user || !(await getIsAdmin(user.id))) return { ok: false, error: "Not allowed" };
   const supabase = await createClient();
   const clean = {};
   if (typeof payload.app_name === "string" && payload.app_name.trim()) clean.app_name = payload.app_name.trim().slice(0, 40);

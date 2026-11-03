@@ -8,7 +8,7 @@ export default async function IntegrationsPage() {
   if (!user) redirect("/login");
 
   const { data: businesses } = await supabase
-    .from("businesses").select("id, name, webhook_url").order("created_at", { ascending: true });
+    .from("businesses").select("id, name, webhook_url").eq("owner_id", user.id).order("created_at", { ascending: true });
   const biz = businesses?.[0];
 
   return (

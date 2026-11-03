@@ -34,7 +34,7 @@ export default async function BillingPage() {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect("/login");
 
-  const { data: businesses } = await supabase.from("businesses").select("id, name, plan, sub_status, renews_at, stripe_customer_id").order("created_at", { ascending: true });
+  const { data: businesses } = await supabase.from("businesses").select("id, name, plan, sub_status, renews_at, stripe_customer_id").eq("owner_id", user.id).order("created_at", { ascending: true });
   const biz = businesses?.[0];
   const { data: plans } = await supabase.from("plans").select("name, price, interval, features, monthly_booking_limit, chat_history, sort").order("sort");
 

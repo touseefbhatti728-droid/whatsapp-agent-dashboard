@@ -8,13 +8,26 @@ export default async function OnboardingPage() {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect("/login");
 
-  const { data: biz } = await supabase
+  const cols = "name, location, services, hours, faq, knowledge, calendar_id, whatsapp_number, meta_phone_number_id, sub_status";
+  let { data: biz } = await supabase
     .from("businesses")
-    .select("name, location, services, hours, faq, knowledge, calendar_id, whatsapp_number")
+    .select(cols)
     .eq("owner_id", user.id)
     .order("created_at", { ascending: true })
     .limit(1)
     .maybeSingle();
+
+  // Accounts confirmed through an old email link may have no business yet —
+  // create it now so "Connect WhatsApp" in step 5 has a row to save to.
+  if (!biz) {
+    const meta = user.user_metadata || {};
+    const { data: created } = await supabase
+      .from("businesses")
+      .insert({ owner_id: user.id, owner_email: user.email || null, name: meta.business_name || meta.full_name || "", status: "active" })
+      .select(cols)
+      .single();
+    biz = created;
+  }
 
   const branding = await getBranding();
 

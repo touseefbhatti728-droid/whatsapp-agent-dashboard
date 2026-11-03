@@ -8,7 +8,7 @@ const FB_APP_ID = process.env.NEXT_PUBLIC_FB_APP_ID;
 const FB_CONFIG_ID = process.env.NEXT_PUBLIC_FB_CONFIG_ID;
 const GV = process.env.NEXT_PUBLIC_FB_GRAPH_VERSION || "v21.0";
 
-export default function ConnectWhatsApp({ connectedNumber }) {
+export default function ConnectWhatsApp({ connectedNumber, aiOn = true }) {
   const [status, setStatus] = useState("idle"); // idle | connecting | saving | done | error
   const [msg, setMsg] = useState("");
   const sessionRef = useRef({});
@@ -42,6 +42,11 @@ export default function ConnectWhatsApp({ connectedNumber }) {
           if (data.data.phone_number_id) sessionRef.current.phone_number_id = data.data.phone_number_id;
           if (data.data.waba_id) sessionRef.current.waba_id = data.data.waba_id;
           if (data.event) sessionRef.current.event = data.event;
+          // Remember where the user stopped, to explain a cancel clearly
+          if (data.event === "CANCEL") {
+            sessionRef.current.cancelStep = data.data.current_step || null;
+            sessionRef.current.cancelError = data.data.error_message || null;
+          }
         }
       } catch (_) {}
     }
@@ -71,8 +76,13 @@ export default function ConnectWhatsApp({ connectedNumber }) {
       function (response) {
         const code = response && response.authResponse && response.authResponse.code;
         if (!code) {
+          const info = sessionRef.current || {};
           setStatus("error");
-          setMsg("Connection was cancelled or permission wasn't given.");
+          setMsg(
+            info.cancelError ? "Meta stopped the setup: " + info.cancelError
+            : info.cancelStep ? "The Meta window was closed before the last step (" + String(info.cancelStep).replace(/_/g, " ").toLowerCase() + "). Click Connect again to finish."
+            : "The Meta window didn't finish. If no window opened, allow pop-ups for this site in your browser and click Connect again."
+          );
           return;
         }
         setStatus("saving");
@@ -86,8 +96,14 @@ export default function ConnectWhatsApp({ connectedNumber }) {
           .then(function (r) {
             if (r && r.ok) {
               setStatus("done");
-              setMsg("WhatsApp connected ✅ " + (r.phoneNumber ? "(" + r.phoneNumber + ")" : ""));
-              toast.success("WhatsApp connected", r.phoneNumber ? r.phoneNumber + " is live — your AI now replies to customers." : "Your AI now replies to customers.");
+              const num = r.phoneNumber ? " (" + r.phoneNumber + ")" : "";
+              if (r.aiOn) {
+                setMsg("WhatsApp connected ✅" + num + " Send a test message from another phone to check the AI replies.");
+                toast.success("WhatsApp connected", "Your AI now replies to customers.");
+              } else {
+                setMsg("WhatsApp connected ✅" + num + " Your AI is still off — start your free trial in Billing to switch it on.");
+                toast.success("WhatsApp connected", "Start your free trial in Billing to switch the AI on.");
+              }
             } else {
               setStatus("error");
               setMsg((r && r.error) || "Connection failed. Please try again.");
