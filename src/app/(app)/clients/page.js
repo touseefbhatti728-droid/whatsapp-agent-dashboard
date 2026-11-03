@@ -15,7 +15,7 @@ export default async function ClientsPage() {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   // owners: their business · admins: the customer they are managing
-  const activeBizId = (await getActiveBusiness(user?.id))?.id ?? -1;
+  const activeBizId = (await getActiveBusiness(user?.id))?.id ?? "00000000-0000-0000-0000-000000000000"; // no business -> matches nothing
 
   const { data: businesses } = await supabase.from("businesses").select("id, name").eq("id", activeBizId);
   const ids = (businesses || []).map((b) => b.id);

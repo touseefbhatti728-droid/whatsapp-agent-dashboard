@@ -3,7 +3,7 @@
 -- 1) Human takeover pauses: when the owner replies (dashboard or WhatsApp Business app)
 --    or the AI hands a chat over, the AI stays quiet for that customer until `until`.
 create table if not exists public.ai_pauses (
-  business_id   bigint not null references public.businesses (id) on delete cascade,
+  business_id    uuid   not null references public.businesses (id) on delete cascade,
   customer_phone text  not null,
   until          timestamptz not null,
   reason         text,

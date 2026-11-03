@@ -15,7 +15,7 @@ function zonedToUtc(date, time, tz) {
 
 // Confirms the booking belongs to the business this user may manage (owner, or admin managing it).
 async function ownedBooking(supabase, user, bookingId) {
-  const activeBizId = (await getActiveBusiness(user?.id))?.id ?? -1;
+  const activeBizId = (await getActiveBusiness(user?.id))?.id ?? "00000000-0000-0000-0000-000000000000"; // no business -> matches nothing
   const { data } = await supabase.from("bookings").select("id, business_id").eq("id", bookingId).maybeSingle();
   if (!data || String(data.business_id) !== String(activeBizId)) return null;
   return data;
@@ -66,7 +66,7 @@ export async function createAppointment(input) {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return { ok: false, error: "Not signed in" };
   // owners: their business · admins: the customer they are managing
-  const activeBizId = (await getActiveBusiness(user?.id))?.id ?? -1;
+  const activeBizId = (await getActiveBusiness(user?.id))?.id ?? "00000000-0000-0000-0000-000000000000"; // no business -> matches nothing
 
   const name = String(input?.name || "").trim();
   const phone = String(input?.phone || "").replace(/\D/g, "");
