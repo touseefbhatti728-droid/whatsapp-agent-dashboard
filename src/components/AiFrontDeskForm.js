@@ -8,7 +8,15 @@ import { toast } from "@/lib/toast";
 const LANGUAGES = ["Auto (match customer)", "English", "Arabic", "Urdu", "Hindi", "French", "Spanish", "Filipino", "Russian"];
 const TONES = ["Warm and caring", "Friendly & casual", "Professional", "Playful", "Formal & polite"];
 const LENGTHS = ["Short", "Balanced", "Detailed"];
-const TIMEZONES = ["Asia/Dubai", "Asia/Karachi", "Asia/Kolkata", "Europe/London", "America/New_York", "America/Los_Angeles", "Australia/Sydney"];
+// Fixed list (same on server and browser, so no hydration mismatch).
+const TIMEZONES = [
+  "Asia/Dubai", "Asia/Muscat", "Asia/Qatar", "Asia/Bahrain", "Asia/Kuwait", "Asia/Riyadh", "Asia/Baghdad", "Asia/Amman", "Asia/Beirut", "Africa/Cairo",
+  "Asia/Karachi", "Asia/Kolkata", "Asia/Dhaka", "Asia/Kathmandu", "Asia/Colombo", "Asia/Bangkok", "Asia/Jakarta", "Asia/Singapore", "Asia/Kuala_Lumpur", "Asia/Manila",
+  "Asia/Hong_Kong", "Asia/Shanghai", "Asia/Tokyo", "Asia/Seoul", "Australia/Perth", "Australia/Sydney", "Pacific/Auckland",
+  "Europe/London", "Europe/Dublin", "Europe/Lisbon", "Europe/Paris", "Europe/Amsterdam", "Europe/Berlin", "Europe/Madrid", "Europe/Rome", "Europe/Istanbul", "Europe/Moscow",
+  "Africa/Lagos", "Africa/Nairobi", "Africa/Johannesburg", "Africa/Casablanca",
+  "America/New_York", "America/Chicago", "America/Denver", "America/Los_Angeles", "America/Toronto", "America/Mexico_City", "America/Sao_Paulo", "America/Bogota",
+];
 const DAYS = [["mon", "Monday"], ["tue", "Tuesday"], ["wed", "Wednesday"], ["thu", "Thursday"], ["fri", "Friday"], ["sat", "Saturday"], ["sun", "Sunday"]];
 
 function defaultHours() {
@@ -111,6 +119,17 @@ export default function AiFrontDeskForm({ businesses }) {
         <Toggle label="Use emojis" desc="Let the AI add a few friendly emojis." value={form.use_emoji} onChange={(v) => set("use_emoji", v)} />
       </div>
 
+      {/* Business timezone — always visible: every booking time and "today" uses it */}
+      <div className="card space-y-3 p-6">
+        <div>
+          <h2 className="text-sm font-semibold text-text">Business timezone</h2>
+          <p className="mt-0.5 text-xs text-muted">Where your business is. The AI books appointments in this time, and your calendar and stats use it.</p>
+        </div>
+        <div className="max-w-xs">
+          <Select label="Time zone" value={form.timezone} onChange={(v) => set("timezone", v)} options={TIMEZONES.includes(form.timezone) ? TIMEZONES : [form.timezone, ...TIMEZONES]} />
+        </div>
+      </div>
+
       {/* AI working hours */}
       <div className="card space-y-4 p-6">
         <div className="flex items-start justify-between gap-4">
@@ -123,10 +142,6 @@ export default function AiFrontDeskForm({ businesses }) {
 
         {form.ai_hours_enabled && (
           <>
-            <div className="max-w-xs">
-              <Select label="Time zone" value={form.timezone} onChange={(v) => set("timezone", v)} options={TIMEZONES} />
-            </div>
-
             <div className="divide-y divide-line rounded-xl border border-line">
               {DAYS.map(([dk, dl]) => {
                 const d = form.ai_hours[dk] || { on: false, start: "09:00", end: "18:00" };

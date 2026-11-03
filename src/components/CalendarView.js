@@ -1,6 +1,9 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
+import { createAppointment } from "@/lib/booking-actions";
+import { toast } from "@/lib/toast";
 
 const WEEKDAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 const MONTHS = ["January","February","March","April","May","June","July","August","September","October","November","December"];
@@ -15,7 +18,7 @@ function AppointmentCard({ b, showBusiness }) {
       <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-ink text-xs font-semibold text-white">{initials(b.customer_name)}</div>
       <div className="min-w-0 flex-1">
         <p className="truncate text-sm font-semibold text-text">{b.customer_name || "Unknown"}</p>
-        <p className="truncate text-xs text-muted">{b.service || "—"}{showBusiness ? ` · ${b.businessName}` : ""}</p>
+        <p className="truncate text-xs text-muted">{b.service || "—"}{showBusiness ? ` · ${b.businessName}` : ""}{b.source === "dashboard" ? " · added by you" : ""}</p>
       </div>
       <div className="flex flex-col items-end gap-1">
         <span className="inline-flex items-center gap-1 rounded-md bg-brand-tint px-2 py-0.5 text-xs font-semibold text-brand-dark">
@@ -28,10 +31,57 @@ function AppointmentCard({ b, showBusiness }) {
   );
 }
 
-export default function CalendarView({ bookings, showBusiness }) {
+function NewAppointment({ date, services, onClose }) {
+  const router = useRouter();
+  const [f, setF] = useState({ name: "", phone: "", service: services[0] || "", date, time: "10:00", notes: "" });
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState("");
+  const set = (k, v) => { setF((s) => ({ ...s, [k]: v })); setErr(""); };
+
+  async function save(e) {
+    e.preventDefault();
+    setBusy(true); setErr("");
+    const r = await createAppointment(f);
+    setBusy(false);
+    if (!r?.ok) { setErr(r?.error || "Couldn't save. Please try again."); return; }
+    toast.success("Appointment added", [f.name, r.ref].filter(Boolean).join(" · "));
+    router.refresh();
+    onClose(f.date);
+  }
+
+  return (
+    <form onSubmit={save} className="card space-y-3 p-5">
+      <div className="flex items-center justify-between">
+        <p className="text-sm font-semibold text-text">New appointment</p>
+        <button type="button" onClick={() => onClose()} className="text-sm text-muted hover:text-text">Cancel</button>
+      </div>
+      <input required value={f.name} onChange={(e) => set("name", e.target.value)} placeholder="Customer name" className="field" />
+      <input value={f.phone} onChange={(e) => set("phone", e.target.value)} placeholder="WhatsApp number with country code (optional)" inputMode="tel" className="field" />
+      {services.length > 0 ? (
+        <select value={f.service} onChange={(e) => set("service", e.target.value)} className="field">
+          {services.map((s) => <option key={s} value={s}>{s}</option>)}
+          <option value="">Other / not listed</option>
+        </select>
+      ) : (
+        <input value={f.service} onChange={(e) => set("service", e.target.value)} placeholder="Service (e.g. Haircut)" className="field" />
+      )}
+      <div className="grid grid-cols-2 gap-2">
+        <input type="date" required value={f.date} onChange={(e) => set("date", e.target.value)} className="field" />
+        <input type="time" required value={f.time} onChange={(e) => set("time", e.target.value)} className="field" />
+      </div>
+      <textarea value={f.notes} onChange={(e) => set("notes", e.target.value)} placeholder="Notes (optional)" rows={2} className="field resize-y" />
+      {err && <p className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-600">{err}</p>}
+      <button disabled={busy} className="btn-brand w-full">{busy ? "Saving…" : "Save appointment"}</button>
+      <p className="text-[11px] text-muted">Times are in your business timezone (AI front desk → timezone).</p>
+    </form>
+  );
+}
+
+export default function CalendarView({ bookings, showBusiness, services = [], canCreate = false, openNew = false }) {
   const today = new Date();
   const [view, setView] = useState({ y: today.getFullYear(), m: today.getMonth() });
   const [selected, setSelected] = useState(ymd(today));
+  const [adding, setAdding] = useState(openNew && canCreate);
 
   const byDay = {};
   bookings.forEach((b) => {
@@ -106,6 +156,18 @@ export default function CalendarView({ bookings, showBusiness }) {
 
       {/* Right column */}
       <div className="flex flex-col gap-4">
+        {canCreate && (adding ? (
+          <NewAppointment
+            date={selected}
+            services={services}
+            onClose={(d) => { setAdding(false); if (d) setSelected(d); }}
+          />
+        ) : (
+          <button onClick={() => setAdding(true)} className="btn-brand inline-flex w-full items-center justify-center gap-2">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"><path d="M12 5v14M5 12h14" /></svg>
+            New appointment
+          </button>
+        ))}
         {/* Today summary card */}
         <div className="overflow-hidden rounded-[18px] bg-ink text-white shadow-[0_20px_40px_-24px_rgba(17,12,40,0.6)]">
           <div className="flex items-stretch justify-between gap-4 p-5">
