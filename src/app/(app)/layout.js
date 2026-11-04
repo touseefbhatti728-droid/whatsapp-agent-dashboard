@@ -124,6 +124,7 @@ export default async function AppLayout({ children }) {
       </Group>
       <Group title="Daily work">
         <NavItem href="/calendar" label="Calendar" icon={IcCalendar} />
+        <NavItem href="/waitlist" label="Waitlist" icon={IcList} />
         <NavItem href="/clients" label="Clients" icon={IcUsers} />
         {hasChat
           ? <NavItem href="/conversations" label="Conversations" icon={IcChat} />

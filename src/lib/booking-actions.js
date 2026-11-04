@@ -13,10 +13,19 @@ function zonedToUtc(date, time, tz) {
   return new Date(guess.getTime() - offsetMs);
 }
 
+// How many people are waiting for the day a slot just opened on (0 if the waitlist isn't set up).
+async function waitingThatDay(db, businessId, startIso, tz) {
+  if (!startIso) return 0;
+  const day = new Intl.DateTimeFormat("en-CA", { timeZone: tz || "Asia/Dubai" }).format(new Date(startIso));
+  const { count, error } = await db.from("waitlist").select("id", { count: "exact", head: true })
+    .eq("business_id", businessId).eq("wanted_date", day).eq("status", "waiting");
+  return error ? 0 : count || 0;
+}
+
 // Confirms the booking belongs to the business this user may manage (owner, or admin managing it).
 async function ownedBooking(supabase, user, bookingId) {
   const activeBizId = (await getActiveBusiness(user?.id))?.id ?? "00000000-0000-0000-0000-000000000000"; // no business -> matches nothing
-  const { data } = await supabase.from("bookings").select("id, business_id").eq("id", bookingId).maybeSingle();
+  const { data } = await supabase.from("bookings").select("id, business_id, start_time").eq("id", bookingId).maybeSingle();
   if (!data || String(data.business_id) !== String(activeBizId)) return null;
   return data;
 }
@@ -43,7 +52,8 @@ export async function updateAppointment(input) {
   const { error } = await db.from("bookings").update(patch).eq("id", booking.id);
   if (error) return { ok: false, error: error.message };
   revalidatePath("/calendar"); revalidatePath("/dashboard"); revalidatePath("/clients");
-  return { ok: true };
+  const moved = patch.start_time && new Date(patch.start_time).getTime() !== new Date(booking.start_time).getTime();
+  return { ok: true, waiting: moved ? await waitingThatDay(db, booking.business_id, booking.start_time, biz?.timezone) : 0 };
 }
 
 export async function cancelAppointment(id) {
@@ -57,7 +67,8 @@ export async function cancelAppointment(id) {
   const { error } = await db.from("bookings").delete().eq("id", booking.id);
   if (error) return { ok: false, error: error.message };
   revalidatePath("/calendar"); revalidatePath("/dashboard"); revalidatePath("/clients");
-  return { ok: true };
+  const { data: biz } = await db.from("businesses").select("timezone").eq("id", booking.business_id).maybeSingle();
+  return { ok: true, waiting: new Date(booking.start_time) > new Date() ? await waitingThatDay(db, booking.business_id, booking.start_time, biz?.timezone) : 0 };
 }
 
 // Owner adds an appointment by hand (walk-in, phone call, Instagram DM...).

@@ -5,6 +5,12 @@ import { useRouter } from "next/navigation";
 import { createAppointment, updateAppointment, cancelAppointment } from "@/lib/booking-actions";
 import { toast } from "@/lib/toast";
 
+// A slot opened up — remind the owner that people are waiting for that day.
+function waitlistNote(n) {
+  if (!n) return undefined;
+  return `${n} ${n === 1 ? "person is" : "people are"} on the waitlist for that day — see Waitlist to offer the slot.`;
+}
+
 const WEEKDAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 const MONTHS = ["January","February","March","April","May","June","July","August","September","October","November","December"];
 
@@ -66,7 +72,7 @@ function BookingDrawer({ b, tz, services, onClose }) {
     const r = await updateAppointment({ id: b.id, ...f });
     setBusy(false);
     if (!r?.ok) return setErr(r?.error || "Couldn't save.");
-    toast.success("Appointment updated");
+    toast.success("Appointment updated", waitlistNote(r.waiting));
     router.refresh(); onClose();
   }
   async function cancel() {
@@ -74,7 +80,7 @@ function BookingDrawer({ b, tz, services, onClose }) {
     const r = await cancelAppointment(b.id);
     setBusy(false);
     if (!r?.ok) return setErr(r?.error || "Couldn't cancel.");
-    toast.success("Appointment cancelled");
+    toast.success("Appointment cancelled", waitlistNote(r.waiting));
     router.refresh(); onClose();
   }
 
