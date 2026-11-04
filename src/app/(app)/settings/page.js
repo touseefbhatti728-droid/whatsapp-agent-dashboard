@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import SettingsForm from "@/components/SettingsForm";
+import ReviewLinkCard from "@/components/ReviewLinkCard";
 import { getActiveBusiness } from "@/lib/session";
 
 export default async function SettingsPage() {
@@ -8,7 +9,8 @@ export default async function SettingsPage() {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect("/login");
   // owners: their business · admins: the customer they are managing
-  const activeBizId = (await getActiveBusiness(user?.id))?.id ?? "00000000-0000-0000-0000-000000000000"; // no business -> matches nothing
+  const activeBiz = await getActiveBusiness(user?.id);
+  const activeBizId = activeBiz?.id ?? "00000000-0000-0000-0000-000000000000"; // no business -> matches nothing
 
   const { data: businesses } = await supabase
     .from("businesses")
@@ -29,7 +31,11 @@ export default async function SettingsPage() {
           <p className="mt-1 text-sm text-muted">Your provider will connect your business shortly.</p>
         </div>
       ) : (
-        <SettingsForm businesses={businesses} />
+        <>
+          <SettingsForm businesses={businesses} />
+          {/* select("*") on the active business: works before and after the review column exists */}
+          <ReviewLinkCard initial={activeBiz?.google_review_url || ""} />
+        </>
       )}
     </div>
   );

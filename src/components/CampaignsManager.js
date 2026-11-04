@@ -191,13 +191,13 @@ function NewCampaign({ businessId, onDone }) {
           </div>
         )}
       </div>
-      <textarea value={form.message} onChange={(e) => setForm({ ...form, message: e.target.value })} rows={3} className="field resize-y" placeholder="Message… you can use {name}, {event_time_only}, {event_date_only}, {service_names}, {booking_link}" />
+      <textarea value={form.message} onChange={(e) => setForm({ ...form, message: e.target.value })} rows={3} className="field resize-y" placeholder="Message… you can use {name}, {event_time_only}, {event_date_only}, {service_names}, {booking_link}, {review_link}" />
       <div className="flex items-center gap-3">
         <button onClick={add} disabled={busy} className="btn-brand">{busy ? "Adding…" : "Add campaign"}</button>
         <button onClick={onDone} className="btn-ghost">Cancel</button>
         {error && <span className="text-sm font-medium text-red-500">{error}</span>}
       </div>
-      <p className="text-xs text-muted">Available placeholders: {"{name}"}, {"{event_time_only}"}, {"{event_date_only}"}, {"{service_names}"}, {"{booking_link}"}</p>
+      <p className="text-xs text-muted">Available placeholders: {"{name}"}, {"{event_time_only}"}, {"{event_date_only}"}, {"{service_names}"}, {"{booking_link}"}, {"{review_link}"}</p>
     </div>
   );
 }
