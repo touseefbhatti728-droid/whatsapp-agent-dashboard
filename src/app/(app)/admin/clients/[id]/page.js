@@ -82,18 +82,23 @@ export default async function ClientDetail({ params }) {
       </div>
 
       {/* Subscription */}
-      <section className="card p-6">
+      <section id="subscription" className="card scroll-mt-6 p-6">
         <h2 className="mb-4 text-sm font-semibold text-text">Subscription</h2>
         <SubscriptionForm businessId={b.id} plans={plans || []} current={{ plan: b.plan, sub_status: b.sub_status, renews_at: b.renews_at }} />
       </section>
 
       {/* Health: can this client's AI actually reply right now? */}
       <section className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-        <Health ok={aiOn} label="AI replies" value={aiOn ? "On" : "Off"} sub={suspended ? "Account suspended" : aiOn ? `Plan ${b.plan || "—"} · ${b.sub_status}` : `Subscription: ${b.sub_status || "none"}`} />
+        <Health ok={aiOn} label="AI replies" value={aiOn ? "On" : suspended ? "Off" : "Website chat only"}
+          sub={suspended ? "Account suspended" : aiOn ? `Plan ${b.plan || "—"} · ${b.sub_status}` : "Free plan (50 chats/mo)"}
+          action={suspended ? null : aiOn ? "Change plan" : "Give a plan or trial"} href="#subscription" />
         <Health ok={waConnected} label="WhatsApp (Meta)" value={waConnected ? "Connected" : savedNumber ? "Number only" : "Not connected"}
-          sub={waConnected ? `Phone ID ${b.meta_phone_number_id}` : savedNumber ? "Number saved but no Meta token — AI can't send" : "Client must use Connect WhatsApp"} />
-        <Health ok={!!b.calendar_id} label="Google Calendar" value={b.calendar_id ? "Linked" : "Not linked"} sub={b.calendar_id || "Bookings still save to the dashboard"} />
-        <Health ok label="Activity" value={`${bookings?.length || 0} bookings`} sub={`${msgCount || 0} WhatsApp messages`} />
+          sub={waConnected ? `Phone ID ${b.meta_phone_number_id}` : savedNumber ? "Number saved but no Meta token — AI can't send" : "Not linked to Meta yet"}
+          action={waConnected ? "Open settings" : "Connect WhatsApp"} bizId={b.id} next="/connect-whatsapp" />
+        <Health ok={!!b.calendar_id} label="Google Calendar" value={b.calendar_id ? "Linked" : "Not linked"} sub={b.calendar_id || "Bookings still save to the dashboard"}
+          action={b.calendar_id ? "Change calendar" : "Link calendar"} bizId={b.id} next="/settings" />
+        <Health ok label="Activity" value={`${bookings?.length || 0} bookings`} sub={`${msgCount || 0} messages`}
+          action="Open conversations" bizId={b.id} next="/conversations" />
       </section>
 
       {/* Business profile */}
@@ -208,13 +213,26 @@ export default async function ClientDetail({ params }) {
   );
 }
 
-function Health({ ok, label, value, sub }) {
-  return (
-    <div className="card p-4">
+// A status card; with `action` it is clickable — `href` (same page) or it opens the
+// client's dashboard as them on page `next` (Manage as customer).
+function Health({ ok, label, value, sub, action, href, bizId, next }) {
+  const inner = (
+    <>
       <div className="flex items-center justify-between"><span className="text-xs font-medium text-muted">{label}</span><span className={`h-2.5 w-2.5 rounded-full ${ok ? "bg-emerald-500" : "bg-amber-400"}`} /></div>
       <p className="mt-1 text-[15px] font-semibold text-text">{value}</p>
       <p className="truncate text-xs text-muted" title={typeof sub === "string" ? sub : undefined}>{sub}</p>
-    </div>
+      {action && <p className={`mt-2 text-xs font-semibold ${ok ? "text-brand" : "text-amber-700"}`}>{action} →</p>}
+    </>
+  );
+  const cls = "card block w-full p-4 text-left transition hover:border-brand hover:shadow-md";
+  if (!action) return <div className="card p-4">{inner}</div>;
+  if (href) return <a href={href} className={cls}>{inner}</a>;
+  return (
+    <form action={manageBusiness}>
+      <input type="hidden" name="id" value={bizId} />
+      <input type="hidden" name="next" value={next} />
+      <button className={cls}>{inner}</button>
+    </form>
   );
 }
 function Row({ label, value }) {

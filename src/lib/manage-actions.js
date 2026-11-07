@@ -12,7 +12,9 @@ export async function manageBusiness(formData) {
   // Business ids are UUIDs — accept only that shape.
   if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id)) redirect("/admin/clients");
   (await cookies()).set(MANAGE_COOKIE, id, { httpOnly: true, sameSite: "lax", secure: true, path: "/", maxAge: 60 * 60 * 8 });
-  redirect("/dashboard");
+  // Optional page to land on — only these known pages.
+  const next = String(formData.get("next") || "");
+  redirect(["/connect-whatsapp", "/settings", "/conversations", "/billing"].includes(next) ? next : "/dashboard");
 }
 
 export async function stopManaging() {
