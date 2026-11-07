@@ -15,7 +15,7 @@ export default async function PlansPage() {
     <div className="space-y-6">
       <div>
         <h1 className="page-title">Plans</h1>
-        <p className="page-sub">Your subscription plans and their limits. Assign them to clients from a client's detail page.</p>
+        <p className="page-sub">Your subscription plans and their limits. Assign them to customers from a customer's page.</p>
       </div>
       <div className="grid gap-4 sm:grid-cols-3">
         {(plans || []).map((p) => (
@@ -27,7 +27,7 @@ export default async function PlansPage() {
               <li className="flex gap-2"><span className={p.chat_history ? "text-brand" : "text-muted/50"}>{p.chat_history ? "✓" : "✗"}</span>Conversation history</li>
               {p.features && <li className="flex gap-2"><span className="text-brand">✓</span>{p.features}</li>}
             </ul>
-            <p className="mt-3 text-xs text-muted">{countOn(p.name)} client{countOn(p.name) === 1 ? "" : "s"} on this plan</p>
+            <p className="mt-3 text-xs text-muted">{countOn(p.name)} customer{countOn(p.name) === 1 ? "" : "s"} on this plan</p>
           </div>
         ))}
       </div>

@@ -4,6 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { formatPhone } from "@/lib/phone";
+import DeleteCustomerButton from "@/components/DeleteCustomerButton";
 
 function initials(n) { return n ? n.trim().split(/\s+/).slice(0,2).map(w=>w[0]?.toUpperCase()).join("") : "•"; }
 
@@ -46,7 +47,7 @@ export default function ClientSearch({ clients }) {
       {/* Mobile: card list */}
       <div className="space-y-3 md:hidden">
         {filtered.length === 0 ? (
-          <div className="card p-8 text-center text-sm text-muted">No clients match.</div>
+          <div className="card p-8 text-center text-sm text-muted">No customers match.</div>
         ) : filtered.map((c) => (
           <Link key={c.id} href={`/admin/clients/${c.id}`} className="card block p-4">
             <div className="flex items-center gap-3">
@@ -62,12 +63,13 @@ export default function ClientSearch({ clients }) {
               <Connection c={c} />
               <span>{c.plan || "No plan"}{c.sub_status ? ` · ${c.sub_status}` : ""}</span>
               <span className="rounded-md bg-canvas px-2 py-0.5 font-semibold text-text">{c.count} bookings</span>
+              <span className="ml-auto" onClick={(e) => e.preventDefault()}><DeleteCustomerButton id={c.id} name={c.name} hasStripe={c.hasStripe} compact /></span>
             </div>
           </Link>
         ))}
       </div>
 
-      {/* Desktop: table — the whole row opens the client */}
+      {/* Desktop: table — the whole row opens the customer */}
       <div className="card hidden overflow-hidden md:block">
         <div className="overflow-x-auto">
           <table className="w-full">
@@ -80,11 +82,12 @@ export default function ClientSearch({ clients }) {
                 <th className="th">Plan</th>
                 <th className="th">Status</th>
                 <th className="th">Bookings</th>
+                <th className="th"><span className="sr-only">Actions</span></th>
               </tr>
             </thead>
             <tbody className="divide-y divide-line">
               {filtered.length === 0 ? (
-                <tr><td colSpan={7} className="px-5 py-12 text-center text-sm text-muted">No clients match.</td></tr>
+                <tr><td colSpan={8} className="px-5 py-12 text-center text-sm text-muted">No customers match.</td></tr>
               ) : filtered.map((c) => (
                 <tr key={c.id} onClick={() => open(c)} onKeyDown={(e) => e.key === "Enter" && open(c)} tabIndex={0} className="cursor-pointer transition hover:bg-brand-tint/30 focus:bg-brand-tint/30 focus:outline-none">
                   <td className="cell">
@@ -99,6 +102,7 @@ export default function ClientSearch({ clients }) {
                   <td className="cell text-muted">{c.plan || "—"}{c.sub_status ? <span className="block text-[11px]">{c.sub_status}</span> : null}</td>
                   <td className="cell"><Status c={c} /></td>
                   <td className="cell"><span className="rounded-md bg-canvas px-2 py-1 text-xs font-semibold text-text">{c.count}</span></td>
+                  <td className="cell text-right" onClick={(e) => e.stopPropagation()}><DeleteCustomerButton id={c.id} name={c.name} hasStripe={c.hasStripe} compact /></td>
                 </tr>
               ))}
             </tbody>

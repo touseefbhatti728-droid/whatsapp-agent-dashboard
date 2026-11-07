@@ -5,6 +5,7 @@ import { setBusinessStatus } from "../../actions";
 import SubscriptionForm from "@/components/SubscriptionForm";
 import { manageBusiness } from "@/lib/manage-actions";
 import { fixWhatsappNumber } from "../../actions";
+import DeleteCustomerButton from "@/components/DeleteCustomerButton";
 import { phoneDigits, formatPhone, channelOf, CHANNELS, senderOf } from "@/lib/phone";
 
 function when(ts) {
@@ -45,7 +46,7 @@ export default async function ClientDetail({ params }) {
 
   return (
     <div className="space-y-8">
-      <Link href="/admin/clients" className="text-sm text-muted hover:text-text">← Back to clients</Link>
+      <Link href="/admin/clients" className="text-sm text-muted hover:text-text">← Back to customers</Link>
 
       {/* Header */}
       <div className="card flex flex-col gap-4 p-6 sm:flex-row sm:items-center sm:justify-between">
@@ -78,6 +79,7 @@ export default async function ClientDetail({ params }) {
             {suspended ? "Activate account" : "Suspend account"}
           </button>
         </form>
+        <DeleteCustomerButton id={b.id} name={b.name} hasStripe={!!b.stripe_customer_id} />
         </div>
       </div>
 
@@ -87,7 +89,7 @@ export default async function ClientDetail({ params }) {
         <SubscriptionForm businessId={b.id} plans={plans || []} current={{ plan: b.plan, sub_status: b.sub_status, renews_at: b.renews_at }} />
       </section>
 
-      {/* Health: can this client's AI actually reply right now? */}
+      {/* Health: can this customer's AI actually reply right now? */}
       <section className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         <Health ok={aiOn} label="AI replies" value={aiOn ? "On" : suspended ? "Off" : "Website chat only"}
           sub={suspended ? "Account suspended" : aiOn ? `Plan ${b.plan || "—"} · ${b.sub_status}` : "Free plan (50 chats/mo)"}
@@ -192,7 +194,7 @@ export default async function ClientDetail({ params }) {
           <span className="text-xs text-muted">{bookings?.length || 0} total</span>
         </div>
         {(bookings?.length || 0) === 0 ? (
-          <div className="px-5 py-14 text-center text-sm text-muted">No bookings for this client yet.</div>
+          <div className="px-5 py-14 text-center text-sm text-muted">No bookings for this customer yet.</div>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full">

@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 
 const SUGGESTIONS = [
   "Give me today's platform report",
-  "Which clients have WhatsApp not connected yet?",
+  "Which customers have WhatsApp not connected yet?",
   "Full details of Swastha Fit Pro",
   "What's my estimated monthly revenue?",
   "Latest WhatsApp Business coexistence rules from Meta",
@@ -133,7 +133,7 @@ export default function AssistantChat() {
             <div className="logo-mark mx-auto mb-4 flex h-14 w-14 items-center justify-center">{SparkIcon}</div>
             <p className="text-[15px] font-semibold text-text">Your command center</p>
             <p className="mx-auto mt-1.5 max-w-sm text-sm leading-relaxed text-muted">
-              I can see every client, booking and chat, search the web for the latest info, and make changes — suspend, edit settings, fix numbers, change plans, cancel bookings or message a customer. You confirm every change with one click.
+              I can see every customer, booking and chat, search the web for the latest info, and make changes — suspend, edit settings, fix numbers, change plans, cancel bookings or message a customer. You confirm every change with one click.
             </p>
             <div className="mt-6 flex flex-wrap justify-center gap-2">
               {SUGGESTIONS.map((s) => (
@@ -154,7 +154,7 @@ export default function AssistantChat() {
               <div className="w-full max-w-[85%] rounded-2xl border border-brand/25 bg-brand-tint/30 p-4">
                 <p className="text-[11px] font-semibold uppercase tracking-wide text-brand-dark">Confirm action</p>
                 <p className="mt-1.5 text-sm font-medium text-text">{p.summary}</p>
-                {p.clientName && <p className="mt-1 text-xs text-muted">Client: <b className="text-text">{p.clientName}</b></p>}
+                {p.clientName && <p className="mt-1 text-xs text-muted">Customer: <b className="text-text">{p.clientName}</b></p>}
                 {p.changes && <p className="mt-1 break-words text-xs text-muted">{Object.entries(p.changes).map(([k, v]) => `${k}: ${typeof v === "object" ? JSON.stringify(v) : v}`).join(" · ")}</p>}
                 {m.status === "pending" ? (
                   <div className="mt-3.5 flex gap-2">
