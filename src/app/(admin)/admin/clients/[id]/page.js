@@ -6,6 +6,7 @@ import SubscriptionForm from "@/components/SubscriptionForm";
 import { manageBusiness } from "@/lib/manage-actions";
 import { fixWhatsappNumber } from "../../actions";
 import DeleteCustomerButton from "@/components/DeleteCustomerButton";
+import AdminControls from "@/components/AdminControls";
 import { phoneDigits, formatPhone, channelOf, CHANNELS, senderOf } from "@/lib/phone";
 
 function when(ts) {
@@ -103,45 +104,8 @@ export default async function ClientDetail({ params }) {
           action="Open conversations" bizId={b.id} next="/conversations" />
       </section>
 
-      {/* Business profile */}
-      <section className="card overflow-hidden">
-        <div className="border-b border-line px-5 py-4"><h2 className="text-sm font-semibold text-text">Business profile</h2></div>
-        <dl className="grid divide-y divide-line sm:grid-cols-2 sm:divide-y-0">
-          <Row label="Owner email" value={b.owner_email} />
-          <Row label="WhatsApp number" value={
-            <span className="flex flex-wrap items-center gap-2">
-              <span className="font-mono">{formatPhone(savedNumber) || "—"}</span>
-              {numberNeedsFix && (
-                <form action={fixWhatsappNumber}>
-                  <input type="hidden" name="id" value={b.id} />
-                  <button className="rounded-md bg-amber-50 px-2 py-0.5 text-[11px] font-semibold text-amber-700 hover:bg-amber-100" title={`Saved as "${savedNumber}"`}>Fix format → {cleanNumber}</button>
-                </form>
-              )}
-            </span>
-          } />
-          <Row label="Location" value={b.location} />
-          <Row label="Timezone" value={tz} />
-          <Row label="Business hours" value={b.hours} />
-          <Row label="AI working hours" value={b.ai_hours_enabled ? "On (custom schedule)" : "Off — replies 24/7"} />
-          <Row label="Joined" value={when(b.created_at)} />
-          <Row label="Renews / trial ends" value={b.renews_at ? when(b.renews_at) : "—"} />
-        </dl>
-      </section>
-
-      {/* AI front desk */}
-      <section className="card overflow-hidden">
-        <div className="border-b border-line px-5 py-4"><h2 className="text-sm font-semibold text-text">AI front desk</h2></div>
-        <dl className="grid divide-y divide-line sm:grid-cols-2 sm:divide-y-0">
-          <Row label="Assistant name" value={b.assistant_name} />
-          <Row label="Language" value={b.primary_language} />
-          <Row label="Tone" value={b.tone} />
-          <Row label="Reply length" value={b.reply_length} />
-          <Row label="First greeting" value={b.first_greeting} />
-          <Row label="Handover rules" value={b.handover_rules} />
-          <Row label="Booking rules" value={b.booking} />
-          <Row label="FAQ" value={b.faq} />
-        </dl>
-      </section>
+      {/* Control room: every setting, editable (tokens never leave the server) */}
+      <AdminControls biz={Object.fromEntries(Object.entries(b).filter(([k]) => !/token|secret|key$/i.test(k)))} />
 
       <div className="grid gap-4 lg:grid-cols-2">
         {/* Services */}

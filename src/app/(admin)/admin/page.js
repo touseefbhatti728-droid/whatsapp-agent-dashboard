@@ -53,15 +53,15 @@ export default async function MissionControl() {
 
   const adoption = [
     ["WhatsApp", all.filter((b) => b.meta_phone_number_id).length, "#25D366"],
-    ["Website chat", all.filter((b) => b.widget_seen_at).length, "#38bdf8"],
+    ["Website chat", all.filter((b) => b.widget_seen_at).length, "#a855f7"],
     ["Messenger", all.filter((b) => b.fb_page_id).length, "#0866FF"],
     ["Instagram", all.filter((b) => b.ig_account_id).length, "#FF0069"],
   ];
   const mix = [
-    ["Paying", paying.length, "#4f7cff"],
-    ["Trial", trials.length, "#22d3ee"],
+    ["Paying", paying.length, "#7c3aed"],
+    ["Trial", trials.length, "#c084fc"],
     ["Payment failed", pastDue.length, "#f87171"],
-    ["Free / not started", free.length, "#475069"],
+    ["Free / not started", free.length, "#d4d4dc"],
   ];
   const total = all.length || 1;
 
@@ -74,15 +74,19 @@ export default async function MissionControl() {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-wrap items-end justify-between gap-4">
-        <div>
-          <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-brand">Mission control</p>
-          <h1 className="mt-1 text-[28px] font-bold tracking-tight text-text">Platform at a glance</h1>
-          <p className="text-sm text-muted">{all.length} businesses · {new30} joined in the last 30 days</p>
-        </div>
-        <div className="flex gap-2">
-          <Link href="/admin/clients" className="btn-ghost text-sm">All customers</Link>
-          <Link href="/admin/assistant" className="btn-brand text-sm">Ask the AI assistant</Link>
+      <div className="admin-hero relative overflow-hidden rounded-3xl p-6 md:p-8">
+        <div className="pointer-events-none absolute -right-16 -top-16 h-64 w-64 rounded-full bg-white/10 blur-2xl" />
+        <div className="relative flex flex-wrap items-end justify-between gap-4">
+          <div>
+            <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-white/70">Mission control</p>
+            <h1 className="mt-1 text-[30px] font-bold tracking-tight">Your whole platform, one room</h1>
+            <p className="mt-1 text-sm text-white/80">{all.length} businesses · {new30} joined in the last 30 days · ${mrr.toLocaleString()} MRR</p>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <Link href="/admin/clients" className="rounded-xl bg-white/15 px-4 py-2.5 text-sm font-semibold text-white backdrop-blur transition hover:bg-white/25">All customers</Link>
+            <Link href="/admin/health" className="rounded-xl bg-white/15 px-4 py-2.5 text-sm font-semibold text-white backdrop-blur transition hover:bg-white/25">System health</Link>
+            <Link href="/admin/assistant" className="rounded-xl bg-white px-4 py-2.5 text-sm font-semibold text-[#5b21b6] shadow-lg transition hover:bg-white/90">Ask the AI assistant</Link>
+          </div>
         </div>
       </div>
 
@@ -99,8 +103,8 @@ export default async function MissionControl() {
           <div className="flex items-center justify-between">
             <h2 className="text-sm font-semibold text-text">Last 14 days</h2>
             <div className="flex gap-3 text-[11px] text-muted">
-              <span className="flex items-center gap-1.5"><span className="h-2 w-2 rounded-full bg-[#4f7cff]" />Bookings</span>
-              <span className="flex items-center gap-1.5"><span className="h-2 w-2 rounded-full bg-[#22d3ee]" />Sign-ups</span>
+              <span className="flex items-center gap-1.5"><span className="h-2 w-2 rounded-full bg-[#7c3aed]" />Bookings</span>
+              <span className="flex items-center gap-1.5"><span className="h-2 w-2 rounded-full bg-[#c084fc]" />Sign-ups</span>
             </div>
           </div>
           <Bars days={days} a={bookings} b={signups} />
@@ -172,7 +176,7 @@ export default async function MissionControl() {
             {[...all].sort((a, b) => (a.created_at < b.created_at ? 1 : -1)).slice(0, 6).map((b) => (
               <li key={b.id} className="flex items-center gap-3 px-5 py-3">
                 <Link href={`/admin/clients/${b.id}`} className="flex min-w-0 flex-1 items-center gap-3">
-                  <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-[#4f7cff]/80 to-[#22d3ee]/80 text-xs font-bold text-white">{initials(b.name)}</span>
+                  <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-[#7c3aed]/80 to-[#c084fc]/80 text-xs font-bold text-white">{initials(b.name)}</span>
                   <span className="min-w-0">
                     <span className="block truncate text-sm font-medium text-text">{b.name || "Unnamed"}</span>
                     <span className="block truncate text-xs text-muted">{ago(b.created_at)} · {b.sub_status === "active" ? b.plan : b.sub_status === "trialing" ? "trial" : "free"}</span>
@@ -216,7 +220,7 @@ function Kpi({ label, value, sub, href, tone, big, glow }) {
   const inner = (
     <>
       <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-muted">{label}</p>
-      <p className={`mt-2 font-bold tracking-tight ${big ? "text-[34px]" : "text-[28px]"} ${tone === "red" ? "text-red-400" : glow ? "bg-gradient-to-r from-[#7da0ff] to-[#22d3ee] bg-clip-text text-transparent" : "text-text"}`}>{value}</p>
+      <p className={`mt-2 font-bold tracking-tight ${big ? "text-[34px]" : "text-[28px]"} ${tone === "red" ? "text-red-400" : glow ? "bg-gradient-to-r from-[#6d28d9] to-[#c084fc] bg-clip-text text-transparent" : "text-text"}`}>{value}</p>
       <p className="mt-1 text-xs text-muted">{sub}</p>
     </>
   );
@@ -233,8 +237,8 @@ function Bars({ days, a, b }) {
       {days.map((d) => (
         <div key={d} className="group relative flex flex-1 flex-col items-center gap-1">
           <div className="flex h-32 w-full items-end justify-center gap-0.5">
-            <span className="w-1/2 rounded-t bg-[#4f7cff] transition group-hover:brightness-125" style={{ height: `${(a[d] / max) * 100}%`, minHeight: a[d] ? 3 : 0 }} />
-            <span className="w-1/2 rounded-t bg-[#22d3ee] transition group-hover:brightness-125" style={{ height: `${(b[d] / max) * 100}%`, minHeight: b[d] ? 3 : 0 }} />
+            <span className="w-1/2 rounded-t bg-[#7c3aed] transition group-hover:brightness-125" style={{ height: `${(a[d] / max) * 100}%`, minHeight: a[d] ? 3 : 0 }} />
+            <span className="w-1/2 rounded-t bg-[#c084fc] transition group-hover:brightness-125" style={{ height: `${(b[d] / max) * 100}%`, minHeight: b[d] ? 3 : 0 }} />
           </div>
           <span className="text-[9px] text-muted">{new Date(d).getUTCDate()}</span>
           <span className="pointer-events-none absolute -top-7 hidden whitespace-nowrap rounded-md bg-ink px-2 py-1 text-[10px] text-white group-hover:block">{a[d]} bookings · {b[d]} sign-ups</span>
