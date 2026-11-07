@@ -31,3 +31,28 @@ export async function saveWebhook(payload) {
   if (!data?.length) return { ok: false, error: "Couldn't save — please try again." };
   return { ok: true };
 }
+
+import { adminDb } from "@/lib/admin-db";
+// Simple integrations that are just one value — saved straight from the Integrations page.
+const FIELDS = {
+  calendar_id: (v) => (v === "" || /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v) ? null : "Enter the calendar ID — it looks like an email (e.g. you@gmail.com)."),
+  payment_link: (v) => (v === "" || /^https:\/\/\S+$/i.test(v) ? null : "Enter a link that starts with https://"),
+  google_review_url: (v) => (v === "" || /^https:\/\/\S+$/i.test(v) ? null : "Enter a link that starts with https://"),
+};
+
+export async function saveIntegrationField({ field, value }) {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { ok: false, error: "Not signed in" };
+  const biz = await getActiveBusiness(user.id);
+  if (!biz) return { ok: false, error: "No business found for this account." };
+  if (!FIELDS[field]) return { ok: false, error: "Unknown setting." };
+  const v = String(value || "").trim().slice(0, 500);
+  const bad = FIELDS[field](v);
+  if (bad) return { ok: false, error: bad };
+  const db = adminDb() || supabase;
+  const { error } = await db.from("businesses").update({ [field]: v || null }).eq("id", biz.id);
+  if (error) return { ok: false, error: error.message };
+  revalidatePath("/integrations");
+  return { ok: true };
+}
