@@ -53,6 +53,8 @@ export default async function AppLayout({ children }) {
     getActiveBusiness(user.id), // admins: the customer they're managing, else their own
   ]);
   const managing = !!myBiz?._managed;
+  // Admins work in the command center (/admin); they open a business (even their own) with Manage.
+  if (isAdmin && !managing) redirect("/admin");
   const appName = branding.app_name;
   let showChat = true;
   let aiPaused = null; // null = AI running; otherwise a reason string for the banner
@@ -98,25 +100,10 @@ export default async function AppLayout({ children }) {
     </div>
   );
 
-  // Admin command center — its own menu, with the AI assistant at the very top.
-  const adminNav = isAdmin && (
-    <div className="mt-4">
-      <NavItem href="/admin/assistant" label="AI Assistant" icon={IcSpark} />
-      <Group title="Command center">
-        <NavItem href="/admin" label="Platform overview" icon={IcGrid} exact />
-        <NavItem href="/admin/clients" label="Customers" icon={IcUsers} />
-        <NavItem href="/admin/bookings" label="All bookings" icon={IcList} />
-        <NavItem href="/admin/calendar" label="All calendars" icon={IcCalendar} />
-        <NavItem href="/admin/plans" label="Plans & revenue" icon={IcCard} />
-        <NavItem href="/admin/branding" label="Branding" icon={IcPaint} />
-      </Group>
-    </div>
-  );
-
   // Customer menu — ordered the way a business sets up and then works day to day.
   const customerNav = (
     <>
-      <Group title={isAdmin && !managing ? "My business · Set up" : "Set up"}>
+      <Group title="Set up">
         <NavItem href="/dashboard" label="Overview" icon={IcGrid} exact />
         <NavItem href="/setup" label="Get set up" icon={IcSpark} />
         <NavItem href="/connect-whatsapp" label="Connect WhatsApp" icon={(<svg {...S}><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg>)} />
@@ -157,17 +144,7 @@ export default async function AppLayout({ children }) {
 
   // Admins (not managing a customer): command center first, own business below.
   // Managing a customer: their menu first, command center below to get back.
-  const navContent = isAdmin && !managing ? (
-    <>
-      {adminNav}
-      <div className="mt-5 border-t border-line pt-1">{customerNav}</div>
-    </>
-  ) : (
-    <>
-      {customerNav}
-      {isAdmin && <div className="mt-5 border-t border-line pt-1">{adminNav}</div>}
-    </>
-  );
+  const navContent = customerNav;
 
   const userBox = (
     <div className="flex items-center gap-2.5 rounded-xl border border-line bg-canvas/60 p-2">

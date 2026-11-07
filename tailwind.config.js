@@ -3,16 +3,16 @@ module.exports = {
   content: ["./src/**/*.{js,jsx}"],
   theme: {
     extend: {
-      // Clean, light SaaS palette: neutral greys + the brand colour as the only accent.
+      // Palette from CSS variables (globals.css): light for customers, dark for the admin command center.
       colors: {
-        ink: "#16151d",          // dark surfaces (avatars, dark banners)
-        "ink-soft": "#24222f",
-        text: "#16151d",         // main text
-        body: "#3d3b4a",         // long-form text
-        canvas: "#f6f6f9",       // page background
-        surface: "#ffffff",      // cards, sidebar, top bar
-        line: "#e8e7ee",         // borders and dividers
-        muted: "#6e6c7c",        // secondary text
+        ink: "rgb(var(--c-ink) / <alpha-value>)",
+        "ink-soft": "rgb(var(--c-ink-soft) / <alpha-value>)",
+        text: "rgb(var(--c-text) / <alpha-value>)",
+        body: "rgb(var(--c-body) / <alpha-value>)",
+        canvas: "rgb(var(--c-canvas) / <alpha-value>)",
+        surface: "rgb(var(--c-surface) / <alpha-value>)",
+        line: "rgb(var(--c-line) / <alpha-value>)",
+        muted: "rgb(var(--c-muted) / <alpha-value>)",
         brand: {
           DEFAULT: "rgb(var(--brand-rgb) / <alpha-value>)",
           dark: "rgb(var(--brand-dark-rgb) / <alpha-value>)",
