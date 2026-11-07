@@ -3,7 +3,7 @@
  * Plugin Name:       NextReply AI Receptionist
  * Plugin URI:        https://app.nextreply.io
  * Description:       Your NextReply AI on your website: a chat bubble that answers and books 24/7, and an online booking page. Connect in one click.
- * Version:           1.0.0
+ * Version:           1.0.1
  * Requires at least: 5.6
  * Requires PHP:      7.2
  * Author:            NextReply
@@ -111,9 +111,10 @@ add_action('wp_footer', function () {
 		return;
 	}
 	printf(
-		'<script src="%s" data-business="%s" data-color="%s" data-position="%s" async></script>' . "\n",
+		'<script src="%s" data-business="%s" data-name="%s" data-color="%s" data-position="%s" async></script>' . "\n",
 		esc_url(NEXTREPLY_WIDGET),
 		esc_attr($id),
+		esc_attr(get_bloginfo('name')),
 		esc_attr(get_option('nextreply_color', '#6d28d9')),
 		esc_attr(get_option('nextreply_position', 'right'))
 	);
@@ -128,7 +129,7 @@ add_shortcode('nextreply_booking', function ($atts) {
 	$atts = shortcode_atts(array('height' => '900'), $atts, 'nextreply_booking');
 	return sprintf(
 		'<iframe src="%s" style="width:100%%;min-height:%dpx;border:0" loading="lazy" title="Book an appointment"></iframe>',
-		esc_url(NEXTREPLY_APP . '/book/' . $id),
+		esc_url(add_query_arg(array('embed' => '1', 'name' => rawurlencode(get_bloginfo('name'))), NEXTREPLY_APP . '/book/' . $id)),
 		max(500, intval($atts['height']))
 	);
 });
