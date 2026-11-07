@@ -11,3 +11,9 @@ create unique index if not exists businesses_ig_account_id_key on public.busines
 -- Shopify order status: the store's domain and an Admin API token with read_orders (server use only).
 alter table public.businesses add column if not exists shopify_domain text;
 alter table public.businesses add column if not exists shopify_token text;
+
+-- Phone receptionist (Vapi): the assistant + number we created, and the secret in its URLs.
+alter table public.businesses add column if not exists voice_token text;
+alter table public.businesses add column if not exists vapi_assistant_id text;
+alter table public.businesses add column if not exists vapi_phone_number_id text;
+alter table public.businesses add column if not exists voice_number text;

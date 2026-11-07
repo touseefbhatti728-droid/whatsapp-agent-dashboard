@@ -137,6 +137,7 @@ export default async function AppLayout({ children }) {
       </Group>
       <Group title="Grow">
         <NavItem href="/channels" label="Instagram & Messenger" icon={IcChat} />
+        <NavItem href="/phone" label="Phone receptionist" icon={IcBell} />
         <NavItem href="/website" label="Website & booking" icon={IcGlobe} />
         <NavItem href="/followups" label="Payments & follow-ups" icon={IcBell} />
         <NavItem href="/marketing" label="Marketing" icon={IcMega} />
