@@ -3,7 +3,7 @@
  * Plugin Name:       NextReply AI Receptionist
  * Plugin URI:        https://app.nextreply.io
  * Description:       Your NextReply AI on your website: a chat bubble that answers and books 24/7, and an online booking page. Connect in one click.
- * Version:           1.0.1
+ * Version:           1.0.2
  * Requires at least: 5.6
  * Requires PHP:      7.2
  * Author:            NextReply
@@ -83,6 +83,25 @@ function nextreply_settings_page() {
 			<div class="card" style="max-width:640px;padding:20px">
 				<h2>✅ Connected</h2>
 				<p>Your AI chat bubble shows on every page of this site.</p>
+				<?php
+				// Plan status from NextReply (free plan usage / upgrade).
+				$info = wp_remote_get(dirname(dirname(NEXTREPLY_WIDGET)) . '/public/' . $id . '/info', array('timeout' => 5));
+				$plan = is_wp_error($info) ? null : json_decode(wp_remote_retrieve_body($info), true);
+				if (is_array($plan) && isset($plan['tier'])) :
+					if ($plan['tier'] === 'free') :
+						$used = intval($plan['freeChats']['used'] ?? 0);
+						$limit = intval($plan['freeChats']['limit'] ?? 50);
+						?>
+						<div class="notice notice-info inline" style="margin:12px 0;padding:10px 12px">
+							<p><strong>Free plan:</strong> <?php echo esc_html($used . ' of ' . $limit); ?> website chats used this month.
+							Upgrade for unlimited chats, WhatsApp, Instagram, Messenger, photos and phone calls.</p>
+							<p><a class="button button-primary" target="_blank" rel="noopener" href="<?php echo esc_url(NEXTREPLY_APP . '/billing'); ?>">Upgrade — 7 days free</a></p>
+						</div>
+					<?php else : ?>
+						<p><span style="color:#008a20;font-weight:600">● <?php echo esc_html($plan['tier'] === 'trial' ? 'Free trial' : 'Paid plan'); ?></span> — unlimited website chats.</p>
+					<?php endif;
+				endif;
+				?>
 				<form method="post">
 					<?php wp_nonce_field('nextreply_save'); ?>
 					<p><label><input type="checkbox" name="nextreply_enabled" <?php checked(get_option('nextreply_enabled', '1'), '1'); ?>> Show the chat bubble</label></p>

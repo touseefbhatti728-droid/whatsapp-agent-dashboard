@@ -15,7 +15,13 @@ export default async function PhonePage() {
         <h1 className="page-title">Phone receptionist</h1>
         <p className="page-sub">An AI that answers phone calls like your WhatsApp AI — it books, moves and cancels appointments and sends you a summary of every call.</p>
       </div>
-      {!("voice_token" in biz) ? (
+      {biz.sub_status !== "active" && !biz.vapi_assistant_id ? (
+        <div className="card px-5 py-10 text-center">
+          <p className="text-sm font-semibold text-text">Available on paid plans</p>
+          <p className="mt-1 text-sm text-muted">Phone calls are charged per minute, so the AI phone line switches on once you're on a paid plan.</p>
+          <a href="/billing" className="btn-brand mt-4 inline-block">Go to Billing</a>
+        </div>
+      ) : !("voice_token" in biz) ? (
         <div className="card px-5 py-12 text-center">
           <p className="text-sm font-medium text-text">Not switched on yet</p>
           <p className="mt-1 text-sm text-muted">Your provider needs to run a quick database update.</p>

@@ -47,6 +47,15 @@ export default async function BillingPage() {
     limit = cur ? cur.monthly_booking_limit : null;
   }
   const pct = limit ? Math.min(100, Math.round((used / limit) * 100)) : 0;
+  // Free plan: website conversations (distinct visitors) this month.
+  const FREE_CHATS = 50;
+  let freeUsed = 0;
+  if (biz) {
+    const start = new Date(); start.setUTCDate(1); start.setUTCHours(0, 0, 0, 0);
+    const { data: webMsgs } = await supabase.from("messages").select("customer_phone").eq("business_id", biz.id).eq("role", "user")
+      .like("customer_phone", "web:%").gte("created_at", start.toISOString()).limit(10000);
+    freeUsed = new Set((webMsgs || []).map((m) => m.customer_phone)).size;
+  }
   // A real Stripe subscription exists (old no-card "trialing" defaults don't count).
   const hasSub = !!(biz && biz.stripe_customer_id && ["trialing", "active", "past_due"].includes(biz.sub_status));
   const trialEligible = !!(biz && !biz.stripe_customer_id);
@@ -67,15 +76,20 @@ export default async function BillingPage() {
           <div className="flex flex-wrap items-center justify-between gap-4">
             <div>
               <p className="text-xs font-medium uppercase tracking-wide text-muted">Current plan</p>
-              <p className="mt-1 text-xl font-bold text-text">{hasSub || adminGranted ? (biz.plan || "—") : "No plan yet"}</p>
+              <p className="mt-1 text-xl font-bold text-text">{hasSub || adminGranted ? (biz.plan || "—") : "Free plan"}</p>
               <p className="mt-1 text-sm text-muted">
                 {adminGranted ? "Free access given by NextReply — your AI is on. Start a plan below any time to keep it running when this ends."
                   : biz.sub_status === "trialing" && biz.stripe_customer_id ? `Free trial — first payment on ${fmtDate(biz.renews_at)}`
                   : biz.sub_status === "active" ? `Renews on ${fmtDate(biz.renews_at)}`
-                  : biz.sub_status === "past_due" ? "Payment failed — your AI is paused until the card is updated"
-                  : biz.sub_status === "cancelled" ? "Subscription ended — your AI is paused"
-                  : "Start your 7-day free trial to switch on your AI receptionist"}
+                  : biz.sub_status === "past_due" ? "Payment failed — only the free website chat is on until the card is updated"
+                  : biz.sub_status === "cancelled" ? "Subscription ended — you're back on the free website chat"
+                  : `Your AI answers on your website for free — ${freeUsed} of ${FREE_CHATS} chats used this month. Start a 7-day free trial for WhatsApp, Instagram, Messenger, photos and unlimited chats.`}
               </p>
+              {!hasSub && !adminGranted && biz.sub_status !== "active" && (
+                <div className="mt-3 h-2 w-64 max-w-full overflow-hidden rounded-full bg-canvas">
+                  <div className={`h-full rounded-full ${freeUsed >= FREE_CHATS ? "bg-red-500" : "bg-brand"}`} style={{ width: `${Math.min(100, (freeUsed / FREE_CHATS) * 100)}%` }} />
+                </div>
+              )}
             </div>
             <span className={`pill ${biz.sub_status === "active" ? "bg-brand-tint text-brand-dark" : biz.sub_status === "past_due" || biz.sub_status === "cancelled" ? "bg-red-50 text-red-600" : "bg-canvas text-muted"}`}>
               {STATUS_LABEL[biz.sub_status] || biz.sub_status || "—"}
