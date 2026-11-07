@@ -133,11 +133,7 @@ export default function ConversationsView({ conversations: raw, showBusiness }) 
     return { ...c, channel, waiting: last?.role === "user", lastWho: last ? senderOf(last) : "customer" };
   }), [raw]);
 
-  // New messages arrive on their own.
-  useEffect(() => {
-    const t = setInterval(() => { if (document.visibilityState === "visible") router.refresh(); }, 15000);
-    return () => clearInterval(t);
-  }, [router]);
+  // New messages arrive on their own (LiveInbox in the layout reloads this page within seconds).
 
   const counts = useMemo(() => {
     const n = { all: conversations.length };
