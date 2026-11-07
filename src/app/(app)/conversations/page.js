@@ -43,7 +43,7 @@ export default async function ConversationsPage() {
   // Only this owner's business, and the newest 2,000 messages (oldest-first broke past 1,000 rows).
   const ids = (businesses || []).map((b) => b.id);
   const scope = ids.length ? ids : ["00000000-0000-0000-0000-000000000000"];
-  const [{ data: bookings }, { data: newest }] = await Promise.all([
+  const [{ data: bookings }, { data: newest }, { data: pauses }] = await Promise.all([
     supabase.from("bookings").select("customer_phone, customer_name, business_id").in("business_id", scope),
     supabase
       .from("messages")
@@ -51,7 +51,10 @@ export default async function ConversationsPage() {
       .in("business_id", scope)
       .order("created_at", { ascending: false })
       .limit(2000),
+    supabase.from("ai_pauses").select("business_id, customer_phone, until, reason").in("business_id", scope).gt("until", new Date().toISOString()),
   ]);
+  const pausedUntil = {};
+  (pauses || []).forEach((p) => { pausedUntil[`${p.business_id}::${p.customer_phone}`] = { until: p.until, reason: p.reason }; });
   const phoneName = {};
   (bookings || []).forEach((b) => {
     if (b.customer_phone && b.customer_name) phoneName[`${b.business_id}::${b.customer_phone}`] = b.customer_name;
@@ -65,7 +68,7 @@ export default async function ConversationsPage() {
     if (!map.has(key)) {
       map.set(key, {
         key, businessId: m.business_id, businessName: nameById[m.business_id] || "—",
-        phone: m.customer_phone, name: phoneName[key] || null, messages: [],
+        phone: m.customer_phone, name: phoneName[key] || null, messages: [], pause: pausedUntil[key] || null,
       });
     }
     map.get(key).messages.push({ role: m.role, content: m.content, created_at: m.created_at });
@@ -79,8 +82,8 @@ export default async function ConversationsPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-semibold tracking-tight text-text">Conversations</h1>
-        <p className="mt-1 text-sm text-muted">Every chat your AI receptionist has had with customers.</p>
+        <h1 className="page-title">Conversations</h1>
+        <p className="page-sub">Every chat on WhatsApp, your website, Messenger, Instagram and phone — in one inbox.</p>
       </div>
       <ConversationsView conversations={conversations} showBusiness={isAdmin} />
     </div>
