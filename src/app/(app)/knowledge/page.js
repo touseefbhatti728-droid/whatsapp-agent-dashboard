@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import KnowledgeManager from "@/components/KnowledgeManager";
 import { getActiveBusiness } from "@/lib/session";
+import IndustryPicker from "@/components/IndustryPicker";
 
 // Website / PDF import reads several pages and asks the AI to summarise them.
 export const maxDuration = 60;
@@ -11,7 +12,8 @@ export default async function KnowledgePage() {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect("/login");
   // owners: their business · admins: the customer they are managing
-  const activeBizId = (await getActiveBusiness(user?.id))?.id ?? "00000000-0000-0000-0000-000000000000"; // no business -> matches nothing
+  const activeBiz = await getActiveBusiness(user?.id);
+  const activeBizId = activeBiz?.id ?? "00000000-0000-0000-0000-000000000000"; // no business -> matches nothing
 
   const { data: businesses } = await supabase
     .from("businesses")
@@ -43,7 +45,10 @@ export default async function KnowledgePage() {
           <p className="mt-1 text-sm text-muted">Your provider will connect your business shortly.</p>
         </div>
       ) : (
-        <KnowledgeManager businesses={businesses} items={items} />
+        <>
+          <IndustryPicker current={activeBiz?.industry} />
+          <KnowledgeManager businesses={businesses} items={items} />
+        </>
       )}
     </div>
   );

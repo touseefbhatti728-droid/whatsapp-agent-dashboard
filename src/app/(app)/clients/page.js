@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { getActiveBusiness } from "@/lib/session";
+import RedeemButton from "@/components/RedeemButton";
 
 function initials(name) {
   if (!name) return "•";
@@ -15,7 +16,9 @@ export default async function ClientsPage() {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   // owners: their business · admins: the customer they are managing
-  const activeBizId = (await getActiveBusiness(user?.id))?.id ?? "00000000-0000-0000-0000-000000000000"; // no business -> matches nothing
+  const activeBiz = await getActiveBusiness(user?.id);
+  const activeBizId = activeBiz?.id ?? "00000000-0000-0000-0000-000000000000"; // no business -> matches nothing
+  const loyalty = activeBiz?.loyalty_enabled && activeBiz?.loyalty_reward ? { every: activeBiz.loyalty_visits || 5, reward: activeBiz.loyalty_reward } : null;
 
   const { data: businesses } = await supabase.from("businesses").select("id, name").eq("id", activeBizId);
   const ids = (businesses || []).map((b) => b.id);
@@ -35,13 +38,22 @@ export default async function ClientsPage() {
   for (const b of bookings) {
     const key = (b.customer_phone || b.customer_name || "").trim().toLowerCase();
     if (!key) continue;
-    const cur = map.get(key) || { name: b.customer_name, phone: b.customer_phone, count: 0, last: b.start_time, lastService: b.service };
+    const cur = map.get(key) || { name: b.customer_name, phone: b.customer_phone, count: 0, visits: 0, last: b.start_time, lastService: b.service };
     cur.count += 1;
+    if (new Date(b.start_time) < new Date()) cur.visits += 1;
     if (!cur.name && b.customer_name) cur.name = b.customer_name;
     map.set(key, cur);
   }
   const clients = [...map.values()].sort((a, b) => new Date(b.last) - new Date(a.last));
   const repeat = clients.filter((c) => c.count > 1).length;
+
+  // Loyalty: rewards earned every N past visits, minus the ones already given.
+  if (loyalty && ids.length) {
+    const { data: red } = await supabase.from("loyalty_redemptions").select("customer_phone").eq("business_id", ids[0]);
+    const given = {};
+    (red || []).forEach((r) => { given[r.customer_phone] = (given[r.customer_phone] || 0) + 1; });
+    clients.forEach((c) => { c.rewards = Math.max(0, Math.floor(c.visits / loyalty.every) - (given[c.phone] || 0)); });
+  }
 
   return (
     <div className="space-y-8">
@@ -96,6 +108,7 @@ export default async function ClientsPage() {
                     <th className="th">Bookings</th>
                     <th className="th">Last service</th>
                     <th className="th">Last visit</th>
+                    {loyalty && <th className="th">Loyalty</th>}
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-line">
@@ -111,6 +124,13 @@ export default async function ClientsPage() {
                       <td className="cell"><span className="pill bg-brand-tint text-brand-dark">{c.count}</span></td>
                       <td className="cell text-muted">{c.lastService || "—"}</td>
                       <td className="cell text-muted">{formatWhen(c.last)}</td>
+                      {loyalty && (
+                        <td className="cell">
+                          {c.rewards > 0 && c.phone
+                            ? <RedeemButton phone={c.phone} label={`🎁 Give ${loyalty.reward}${c.rewards > 1 ? ` (${c.rewards})` : ""}`} />
+                            : <span className="text-xs text-muted">{c.visits % loyalty.every}/{loyalty.every} visits</span>}
+                        </td>
+                      )}
                     </tr>
                   ))}
                 </tbody>

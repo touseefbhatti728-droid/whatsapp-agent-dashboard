@@ -30,7 +30,13 @@ export default async function CalendarPage({ searchParams }) {
     if (bk.error) data = (await supabase.from("bookings").select(cols).in("business_id", ids)).data;
     else staff = team || [];
     const staffName = Object.fromEntries(staff.map((m) => [m.id, m.name]));
-    bookings = (data || []).map((b) => ({ ...b, businessName: nameById[b.business_id] || "", staffName: staffName[b.staff_id] || null }));
+    // Deposit status (phase-3 SQL) and intake form answers for each booking.
+    const ids2 = (data || []).map((b) => b.id);
+    const { data: dep } = ids2.length ? await supabase.from("bookings").select("id, deposit_status").in("id", ids2) : { data: [] };
+    const depositOf = Object.fromEntries((dep || []).map((d) => [d.id, d.deposit_status]));
+    const { data: intake } = ids2.length ? await supabase.from("intake_responses").select("booking_id, answers, token, submitted_at").in("booking_id", ids2) : { data: [] };
+    const intakeOf = Object.fromEntries((intake || []).map((r) => [r.booking_id, r]));
+    bookings = (data || []).map((b) => ({ ...b, businessName: nameById[b.business_id] || "", staffName: staffName[b.staff_id] || null, deposit: depositOf[b.id] || null, intake: intakeOf[b.id] || null }));
     services = (svc || []).map((s) => s.name);
   }
 

@@ -5,6 +5,30 @@ import { useRouter } from "next/navigation";
 import { createAppointment, updateAppointment, cancelAppointment } from "@/lib/booking-actions";
 import { toast } from "@/lib/toast";
 import { sourceLabel } from "@/lib/phone";
+import { setDepositStatus } from "@/lib/followup-actions";
+
+function DepositToggle({ id, status }) {
+  const router = useRouter();
+  const [s, setS] = useState(status);
+  async function flip() {
+    const next = s === "paid" ? "pending" : "paid";
+    const r = await setDepositStatus(id, next);
+    if (!r.ok) return toast.error("Couldn't update", r.error);
+    setS(next); router.refresh();
+  }
+  return (
+    <span className="inline-flex items-center gap-2">
+      <span className={s === "paid" ? "font-semibold text-emerald-700" : "font-semibold text-amber-700"}>{s === "paid" ? "Paid" : "Pending"}</span>
+      <button onClick={flip} className="rounded-md border border-line px-2 py-0.5 text-xs">{s === "paid" ? "Mark unpaid" : "Mark paid"}</button>
+    </span>
+  );
+}
+
+function IntakeAnswers({ answers }) {
+  const entries = Object.entries(answers || {});
+  if (!entries.length) return "—";
+  return <span className="block space-y-1">{entries.map(([q, a]) => <span key={q} className="block"><span className="text-muted">{q}:</span> {a || "—"}</span>)}</span>;
+}
 
 // A slot opened up — remind the owner that people are waiting for that day.
 function waitlistNote(n) {
@@ -113,6 +137,8 @@ function BookingDrawer({ b, tz, services, staff = [], onClose }) {
               <Row label="Time" value={`${niceTime(p.time)} (${tz})`} />
               <Row label="Service" value={b.service || "—"} />
               {staff.length > 0 && <Row label="With" value={b.staffName || "Anyone"} />}
+              {b.deposit && b.deposit !== "none" && <Row label="Deposit" value={<DepositToggle id={b.id} status={b.deposit} />} />}
+              {b.intake && <Row label="Intake form" value={b.intake.submitted_at ? <IntakeAnswers answers={b.intake.answers} /> : <a href={`/intake/${b.intake.token}`} target="_blank" rel="noreferrer" className="text-brand">Not filled yet — open link</a>} />}
               <Row label="WhatsApp" value={b.customer_phone ? `+${b.customer_phone}` : "—"} />
               <Row label="Notes" value={b.notes || "—"} />
               <Row label="Created" value={b.created_at ? new Date(b.created_at).toLocaleString(undefined, { timeZone: tz, day: "numeric", month: "short", year: "numeric", hour: "numeric", minute: "2-digit" }) : "—"} />
