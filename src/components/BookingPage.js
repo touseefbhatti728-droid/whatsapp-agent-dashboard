@@ -123,7 +123,8 @@ export default function BookingPage({ businessId, displayName, embed: embedProp 
 
   let n = 0;
   return shell(
-    <form onSubmit={book} className="divide-y divide-line">
+    {/* Only the Confirm button books — pressing Enter in a field must not. */}
+    <form onSubmit={book} onKeyDown={(e) => { if (e.key === "Enter" && e.target.tagName === "INPUT") e.preventDefault(); }} className="divide-y divide-line">
       {needService && (
         <Section n={++n} title="Choose a service" summary={svc && `${svc.name} · ${svc.duration} min`}>
           <div className="grid gap-2 sm:grid-cols-2">
