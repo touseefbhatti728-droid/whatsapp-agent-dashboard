@@ -143,9 +143,7 @@ export default async function AppLayout({ children }) {
         <NavItem href="/followups" label="Payments & follow-ups" icon={IcBell} />
         <NavItem href="/marketing" label="Marketing" icon={IcMega} />
         <NavItem href="/insights" label="Insights" icon={IcChart} />
-        {hasWebhooks
-          ? <NavItem href="/integrations" label="Integrations" icon={IcPlug} />
-          : <NavItem href="/billing" label="Integrations" icon={IcPlug} badge="Business" />}
+        <NavItem href="/integrations" label="Integrations" icon={IcPlug} />
       </Group>
       <Group title="Account">
         <NavItem href="/settings" label="Settings" icon={IcCog} />
@@ -187,8 +185,16 @@ export default async function AppLayout({ children }) {
       <div className="logo-mark h-9 w-9 text-[15px]">{appName.charAt(0)}</div>
       <div className="min-w-0">
         <p className="truncate text-[14px] font-semibold tracking-tight text-text">{appName}</p>
-        <p className="truncate text-[11.5px] text-muted">{myBiz?.name || (isAdmin ? "Admin workspace" : "Your business")}{myBiz?.plan ? ` · ${myBiz.plan}` : ""}</p>
+        <p className="truncate text-[11.5px] text-muted">{/^nextreply$/i.test(appName) ? "AI receptionist" : "by NextReply"}</p>
       </div>
+    </div>
+  );
+  // The business you are working on — shown under the brand, not as the app name.
+  const workspace = (myBiz?.name || isAdmin) && (
+    <div className="mt-3 flex items-center gap-2 rounded-xl bg-canvas px-2.5 py-1.5">
+      <span className="text-[10px] font-semibold uppercase tracking-wide text-muted/80">Business</span>
+      <span className="min-w-0 flex-1 truncate text-[12px] font-medium text-text">{myBiz?.name || "Admin workspace"}</span>
+      {myBiz?.plan && <span className="shrink-0 rounded-md bg-surface px-1.5 py-0.5 text-[10px] font-semibold text-muted">{myBiz.plan}</span>}
     </div>
   );
 
@@ -196,7 +202,7 @@ export default async function AppLayout({ children }) {
     <div className="flex min-h-screen bg-canvas">
       {/* Desktop sidebar — light, quiet, grouped */}
       <aside className="sticky top-0 hidden h-screen w-[244px] shrink-0 flex-col border-r border-line bg-surface md:flex">
-        <div className="border-b border-line px-4 py-4">{brandBlock}</div>
+        <div className="border-b border-line px-4 py-4">{brandBlock}{workspace}</div>
         <div className="flex-1 overflow-y-auto px-3 pb-4">{navContent}</div>
         <div className="border-t border-line p-3">{userBox}</div>
       </aside>
