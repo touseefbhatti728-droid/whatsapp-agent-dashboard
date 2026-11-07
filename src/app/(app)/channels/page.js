@@ -1,6 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { getActiveBusiness } from "@/lib/session";
 import ConnectSocial from "@/components/ConnectSocial";
+import ShopifyCard from "@/components/ShopifyCard";
 
 export default async function ChannelsPage() {
   const supabase = await createClient();
@@ -13,7 +14,7 @@ export default async function ChannelsPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="page-title">Instagram & Messenger</h1>
+        <h1 className="page-title">Instagram, Messenger & store</h1>
         <p className="page-sub">Connect your Facebook Page and its Instagram account — the same AI answers DMs, books appointments and hands over to you, all in one inbox.</p>
       </div>
       {!ready ? (
@@ -28,6 +29,7 @@ export default async function ChannelsPage() {
           appId={process.env.NEXT_PUBLIC_FB_APP_ID || ""}
         />
       )}
+      {"shopify_domain" in biz && <ShopifyCard domain={biz.shopify_domain || ""} />}
     </div>
   );
 }
