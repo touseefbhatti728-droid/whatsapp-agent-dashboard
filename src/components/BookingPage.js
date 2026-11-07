@@ -65,6 +65,7 @@ export default function BookingPage({ businessId, displayName, embed: embedProp 
     return Object.entries(g).filter(([, v]) => v.length);
   }, [slots]);
 
+  // Only the Confirm button books — Enter in a field is ignored (see the form onKeyDown).
   async function book(e) {
     e.preventDefault();
     setBusy(true); setErr("");
@@ -123,7 +124,6 @@ export default function BookingPage({ businessId, displayName, embed: embedProp 
 
   let n = 0;
   return shell(
-    {/* Only the Confirm button books — pressing Enter in a field must not. */}
     <form onSubmit={book} onKeyDown={(e) => { if (e.key === "Enter" && e.target.tagName === "INPUT") e.preventDefault(); }} className="divide-y divide-line">
       {needService && (
         <Section n={++n} title="Choose a service" summary={svc && `${svc.name} · ${svc.duration} min`}>
