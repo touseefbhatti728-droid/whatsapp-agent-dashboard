@@ -3,6 +3,9 @@ import { createClient } from "@/lib/supabase/server";
 import KnowledgeManager from "@/components/KnowledgeManager";
 import { getActiveBusiness } from "@/lib/session";
 
+// Website / PDF import reads several pages and asks the AI to summarise them.
+export const maxDuration = 60;
+
 export default async function KnowledgePage() {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();

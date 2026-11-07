@@ -3,7 +3,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
 
-const TYPES = ["promotion", "policy_faq", "stop"];
+const TYPES = ["promotion", "policy_faq", "stop", "document"];
 
 export async function addKnowledge({ business_id, type, title, content }) {
   const supabase = await createClient();
