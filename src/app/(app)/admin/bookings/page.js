@@ -23,7 +23,7 @@ export default async function AllBookingsPage() {
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-semibold tracking-tight text-text">All bookings</h1>
-        <p className="mt-1 text-sm text-muted">Every appointment across all clients.</p>
+        <p className="mt-1 text-sm text-muted">Every appointment across all customers.</p>
       </div>
       <BookingsTable bookings={rows} />
     </div>

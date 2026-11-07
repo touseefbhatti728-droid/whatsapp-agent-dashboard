@@ -20,7 +20,7 @@ export default async function AdminCalendarPage() {
     <div className="space-y-6">
       <div>
         <h1 className="page-title">Calendar</h1>
-        <p className="page-sub">Every appointment across all clients.</p>
+        <p className="page-sub">Every appointment across all customers.</p>
       </div>
       <CalendarView bookings={bookings} showBusiness={true} />
     </div>

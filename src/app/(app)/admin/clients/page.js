@@ -10,7 +10,7 @@ export default async function ClientsPage() {
 
   const { data: businesses } = await supabase
     .from("businesses")
-    .select("id, name, location, whatsapp_number, meta_phone_number_id, owner_email, status, plan, sub_status, created_at")
+    .select("id, name, location, whatsapp_number, meta_phone_number_id, owner_email, status, plan, sub_status, created_at, stripe_customer_id")
     .order("created_at", { ascending: false });
 
   const { data: bookings } = await supabase.from("bookings").select("business_id");
@@ -18,13 +18,13 @@ export default async function ClientsPage() {
   (bookings || []).forEach((b) => { counts[b.business_id] = (counts[b.business_id] || 0) + 1; });
 
   // Never send the Meta id itself to the browser — only whether WhatsApp is really connected.
-  const clients = (businesses || []).map(({ meta_phone_number_id, ...b }) => ({ ...b, connected: !!meta_phone_number_id, count: counts[b.id] || 0 }));
+  const clients = (businesses || []).map(({ meta_phone_number_id, stripe_customer_id, ...b }) => ({ ...b, connected: !!meta_phone_number_id, hasStripe: !!stripe_customer_id, count: counts[b.id] || 0 }));
 
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="page-title">Clients</h1>
-        <p className="page-sub">{clients.length} businesses on the platform.</p>
+        <h1 className="page-title">Customers</h1>
+        <p className="page-sub">{clients.length} businesses that use NextReply. Their own customers are their clients.</p>
       </div>
       <ClientSearch clients={clients} />
     </div>

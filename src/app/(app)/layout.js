@@ -103,7 +103,7 @@ export default async function AppLayout({ children }) {
       <NavItem href="/admin/assistant" label="AI Assistant" icon={IcSpark} />
       <Group title="Command center">
         <NavItem href="/admin" label="Platform overview" icon={IcGrid} exact />
-        <NavItem href="/admin/clients" label="Clients" icon={IcUsers} />
+        <NavItem href="/admin/clients" label="Customers" icon={IcUsers} />
         <NavItem href="/admin/bookings" label="All bookings" icon={IcList} />
         <NavItem href="/admin/calendar" label="All calendars" icon={IcCalendar} />
         <NavItem href="/admin/plans" label="Plans & revenue" icon={IcCard} />

@@ -39,7 +39,7 @@ export default async function AdminOverview() {
       </div>
 
       <section className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-3">
-        <Stat label="Total clients" value={total} />
+        <Stat label="Total customers" value={total} />
         <Stat label="Active" value={active} accent />
         <Stat label="Suspended" value={suspended} />
         <Stat label="Total bookings" value={bookingCount || 0} />
@@ -72,7 +72,7 @@ export default async function AdminOverview() {
 
       <section className="card overflow-hidden">
         <div className="flex items-center justify-between border-b border-line px-4 py-4 md:px-5">
-          <h2 className="text-sm font-semibold text-text">Newest clients</h2>
+          <h2 className="text-sm font-semibold text-text">Newest customers</h2>
           <Link href="/admin/clients" className="text-xs font-medium text-brand hover:text-brand-dark">Manage →</Link>
         </div>
         <div className="divide-y divide-line">
