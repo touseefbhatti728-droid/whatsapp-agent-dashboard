@@ -58,11 +58,11 @@ function BookingRow({ b, tz, onOpen }) {
 }
 
 // Full details of one booking + edit + cancel
-function BookingDrawer({ b, tz, services, onClose }) {
+function BookingDrawer({ b, tz, services, staff = [], onClose }) {
   const router = useRouter();
   const p = partsIn(b.start_time, tz);
   const [edit, setEdit] = useState(false);
-  const [f, setF] = useState({ name: b.customer_name || "", phone: b.customer_phone || "", service: b.service || "", date: p.key, time: p.time, notes: b.notes || "" });
+  const [f, setF] = useState({ name: b.customer_name || "", phone: b.customer_phone || "", service: b.service || "", date: p.key, time: p.time, notes: b.notes || "", staff_id: b.staff_id || "" });
   const [busy, setBusy] = useState(false);
   const [confirmCancel, setConfirmCancel] = useState(false);
   const [err, setErr] = useState("");
@@ -112,6 +112,7 @@ function BookingDrawer({ b, tz, services, onClose }) {
               <Row label="Date" value={fromKey(p.key).toLocaleDateString(undefined, { weekday: "long", day: "numeric", month: "long", year: "numeric" })} />
               <Row label="Time" value={`${niceTime(p.time)} (${tz})`} />
               <Row label="Service" value={b.service || "—"} />
+              {staff.length > 0 && <Row label="With" value={b.staffName || "Anyone"} />}
               <Row label="WhatsApp" value={b.customer_phone ? `+${b.customer_phone}` : "—"} />
               <Row label="Notes" value={b.notes || "—"} />
               <Row label="Created" value={b.created_at ? new Date(b.created_at).toLocaleString(undefined, { timeZone: tz, day: "numeric", month: "short", year: "numeric", hour: "numeric", minute: "2-digit" }) : "—"} />
@@ -145,6 +146,7 @@ function BookingDrawer({ b, tz, services, onClose }) {
                 </select>
               ) : <input value={f.service} onChange={(e) => set("service", e.target.value)} className="field" />}
             </Label>
+            <StaffSelect staff={staff} value={f.staff_id} onChange={(v) => set("staff_id", v)} />
             <div className="grid grid-cols-2 gap-2">
               <Label text="Date"><input type="date" value={f.date} onChange={(e) => set("date", e.target.value)} className="field" /></Label>
               <Label text="Time"><input type="time" value={f.time} onChange={(e) => set("time", e.target.value)} className="field" /></Label>
@@ -175,9 +177,9 @@ function Label({ text, children }) {
   return <label className="block"><span className="mb-1 block text-xs font-medium text-muted">{text}</span>{children}</label>;
 }
 
-function NewAppointment({ date, services, tz, onClose }) {
+function NewAppointment({ date, services, staff = [], tz, onClose }) {
   const router = useRouter();
-  const [f, setF] = useState({ name: "", phone: "", service: services[0] || "", date, time: "10:00", notes: "" });
+  const [f, setF] = useState({ name: "", phone: "", service: services[0] || "", date, time: "10:00", notes: "", staff_id: "" });
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState("");
   const set = (k, v) => { setF((s) => ({ ...s, [k]: v })); setErr(""); };
@@ -212,6 +214,7 @@ function NewAppointment({ date, services, tz, onClose }) {
             <input value={f.service} onChange={(e) => set("service", e.target.value)} placeholder="e.g. Haircut" className="field" />
           )}
         </Label>
+        <StaffSelect staff={staff} value={f.staff_id} onChange={(v) => set("staff_id", v)} />
         <div className="grid grid-cols-2 gap-2">
           <Label text="Date *"><input type="date" required value={f.date} onChange={(e) => set("date", e.target.value)} className="field" /></Label>
           <Label text="Time *"><input type="time" required value={f.time} onChange={(e) => set("time", e.target.value)} className="field" /></Label>
@@ -225,7 +228,20 @@ function NewAppointment({ date, services, tz, onClose }) {
   );
 }
 
-export default function CalendarView({ bookings, showBusiness, services = [], canCreate = false, openNew = false, timezone = "Asia/Dubai" }) {
+// Which team member does it (only shown when the business has a team).
+function StaffSelect({ staff, value, onChange }) {
+  if (!staff.length) return null;
+  return (
+    <Label text="With">
+      <select value={value || ""} onChange={(e) => onChange(e.target.value)} className="field">
+        <option value="">Anyone</option>
+        {staff.map((m) => <option key={m.id} value={m.id}>{m.name}</option>)}
+      </select>
+    </Label>
+  );
+}
+
+export default function CalendarView({ bookings, showBusiness, services = [], staff = [], canCreate = false, openNew = false, timezone = "Asia/Dubai" }) {
   const tz = timezone;
   const todayKey = todayKeyIn(tz);
   const [mode, setMode] = useState("month"); // month | week | list
@@ -405,9 +421,9 @@ export default function CalendarView({ bookings, showBusiness, services = [], ca
         </div>
       )}
 
-      {open && <BookingDrawer key={open.id} b={open} tz={tz} services={services} onClose={() => setOpen(null)} />}
+      {open && <BookingDrawer key={open.id} b={open} tz={tz} services={services} staff={staff} onClose={() => setOpen(null)} />}
       {adding && canCreate && (
-        <NewAppointment date={selected} services={services} tz={tz} onClose={(d) => { setAdding(false); if (d) { setSelected(d); setCursor(fromKey(d)); } }} />
+        <NewAppointment date={selected} services={services} staff={staff} tz={tz} onClose={(d) => { setAdding(false); if (d) { setSelected(d); setCursor(fromKey(d)); } }} />
       )}
     </div>
   );

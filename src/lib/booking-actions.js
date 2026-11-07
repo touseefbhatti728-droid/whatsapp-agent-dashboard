@@ -22,6 +22,23 @@ async function waitingThatDay(db, businessId, startIso, tz) {
   return error ? 0 : count || 0;
 }
 
+// staff_id must be one of this business's team members ("" = anyone).
+async function validStaff(db, businessId, staffId) {
+  if (!staffId) return null;
+  const { data } = await db.from("team_members").select("id").eq("id", staffId).eq("business_id", businessId).maybeSingle();
+  return data ? data.id : null;
+}
+
+// Saves; retries without staff_id before the staff SQL is run.
+async function writeWithStaff(run, row) {
+  let { data, error } = await run(row);
+  if (error && /staff_id/.test(error.message) && "staff_id" in row) {
+    const { staff_id, ...rest } = row;
+    ({ data, error } = await run(rest));
+  }
+  return { data, error };
+}
+
 // Confirms the booking belongs to the business this user may manage (owner, or admin managing it).
 async function ownedBooking(supabase, user, bookingId) {
   const activeBizId = (await getActiveBusiness(user?.id))?.id ?? "00000000-0000-0000-0000-000000000000"; // no business -> matches nothing
@@ -49,7 +66,8 @@ export async function updateAppointment(input) {
   }
   const db = adminDb();
   if (!db) return { ok: false, error: "Server not configured (SUPABASE_SERVICE_ROLE_KEY missing)." };
-  const { error } = await db.from("bookings").update(patch).eq("id", booking.id);
+  if (input.staff_id !== undefined) patch.staff_id = await validStaff(db, booking.business_id, input.staff_id);
+  const { error } = await writeWithStaff((row) => db.from("bookings").update(row).eq("id", booking.id), patch);
   if (error) return { ok: false, error: error.message };
   revalidatePath("/calendar"); revalidatePath("/dashboard"); revalidatePath("/clients");
   const moved = patch.start_time && new Date(patch.start_time).getTime() !== new Date(booking.start_time).getTime();
@@ -98,7 +116,7 @@ export async function createAppointment(input) {
 
   const db = adminDb();
   if (!db) return { ok: false, error: "Server not configured (SUPABASE_SERVICE_ROLE_KEY missing)." };
-  const { data, error } = await db.from("bookings").insert({
+  const { data, error } = await writeWithStaff((row) => db.from("bookings").insert(row).select("ref_no").single(), {
     business_id: biz.id,
     customer_name: name,
     customer_phone: phone || null,
@@ -106,7 +124,8 @@ export async function createAppointment(input) {
     start_time: start.toISOString(),
     notes: notes || null,
     source: "dashboard",
-  }).select("ref_no").single();
+    staff_id: await validStaff(db, biz.id, input?.staff_id),
+  });
   if (error) return { ok: false, error: error.message };
 
   revalidatePath("/calendar");

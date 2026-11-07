@@ -18,14 +18,19 @@ export default async function CalendarPage({ searchParams }) {
 
   let bookings = [];
   let services = [];
+  let staff = []; // [] also before the staff SQL is run
   if (ids.length > 0) {
-    const [{ data }, { data: svc }] = await Promise.all([
-      supabase.from("bookings")
-        .select("id, ref_no, customer_name, customer_phone, service, start_time, business_id, source, notes, created_at")
-        .in("business_id", ids),
+    const cols = "id, ref_no, customer_name, customer_phone, service, start_time, business_id, source, notes, created_at";
+    const [bk, { data: svc }, { data: team }] = await Promise.all([
+      supabase.from("bookings").select(cols + ", staff_id").in("business_id", ids),
       supabase.from("services").select("name").in("business_id", ids).eq("active", true).order("name"),
+      supabase.from("team_members").select("id, name").in("business_id", ids).eq("active", true).order("created_at"),
     ]);
-    bookings = (data || []).map((b) => ({ ...b, businessName: nameById[b.business_id] || "" }));
+    let data = bk.data;
+    if (bk.error) data = (await supabase.from("bookings").select(cols).in("business_id", ids)).data;
+    else staff = team || [];
+    const staffName = Object.fromEntries(staff.map((m) => [m.id, m.name]));
+    bookings = (data || []).map((b) => ({ ...b, businessName: nameById[b.business_id] || "", staffName: staffName[b.staff_id] || null }));
     services = (svc || []).map((s) => s.name);
   }
 
@@ -35,7 +40,7 @@ export default async function CalendarPage({ searchParams }) {
         <h1 className="page-title">Calendar</h1>
         <p className="page-sub">All your appointments at a glance.</p>
       </div>
-      <CalendarView bookings={bookings} showBusiness={ids.length > 1} services={services} canCreate={ids.length > 0} openNew={sp.new === "1"} timezone={businesses?.[0]?.timezone || "Asia/Dubai"} />
+      <CalendarView bookings={bookings} showBusiness={ids.length > 1} services={services} staff={staff} canCreate={ids.length > 0} openNew={sp.new === "1"} timezone={businesses?.[0]?.timezone || "Asia/Dubai"} />
     </div>
   );
 }

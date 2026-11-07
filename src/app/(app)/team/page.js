@@ -19,19 +19,22 @@ export default async function TeamPage() {
   const ids = (businesses || []).map((b) => b.id);
   let members = [];
   if (ids.length) {
-    const { data } = await supabase
-      .from("team_members")
-      .select("id, business_id, name, role, active")
-      .in("business_id", ids)
-      .order("created_at", { ascending: true });
+    const q = (cols) => supabase.from("team_members").select(cols).in("business_id", ids).order("created_at", { ascending: true });
+    let { data, error } = await q("id, business_id, name, role, active, availability, services");
+    if (error) ({ data } = await q("id, business_id, name, role, active")); // before the staff SQL
     members = data || [];
   }
+  const { data: svc } = ids.length
+    ? await supabase.from("services").select("name").in("business_id", ids).eq("active", true).order("name")
+    : { data: [] };
+  const serviceNames = (svc || []).map((s) => s.name);
+  const staffReady = members.length === 0 || "services" in (members[0] || {});
 
   return (
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-semibold tracking-tight text-text">Team</h1>
-        <p className="mt-1 text-sm text-muted">Your team members. The AI can mention them when a customer asks for a specific person.</p>
+        <p className="mt-1 text-sm text-muted">Who works here, what they do and when. Bookings go to someone who does that service and is free, and customers can ask for a person.</p>
       </div>
 
       {(!businesses || businesses.length === 0) ? (
@@ -40,7 +43,7 @@ export default async function TeamPage() {
           <p className="mt-1 text-sm text-muted">Your provider will connect your business shortly.</p>
         </div>
       ) : (
-        <TeamManager businesses={businesses} members={members} />
+        <TeamManager businesses={businesses} members={members} serviceNames={serviceNames} staffReady={staffReady} />
       )}
     </div>
   );

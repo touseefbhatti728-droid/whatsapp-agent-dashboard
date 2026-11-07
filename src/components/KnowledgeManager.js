@@ -5,9 +5,11 @@ import ConfirmButton from "@/components/ConfirmButton";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { addKnowledge, updateKnowledge, deleteKnowledge } from "@/lib/knowledge-actions";
+import { importFromWebsite, importFromPdf } from "@/lib/knowledge-import-actions";
 import { toast } from "@/lib/toast";
 
 const SECTIONS = [
+  { type: "document", title: "From your website & documents", desc: "Facts your AI learned from your website or PDFs. Check them and edit anything that's wrong.", titlePh: "Source, e.g. Price list 2026", contentPh: "Or paste any text — price list, menu, brochure…", titled: true },
   { type: "promotion", title: "Promotions", desc: "Current offers the AI can mention to customers.", titlePh: "e.g. Ramadan offer", contentPh: "20% off all services this week", titled: true },
   { type: "policy_faq", title: "Policies & FAQ", desc: "Common questions and rules the AI answers with.", titlePh: "Question / topic", contentPh: "e.g. Do you take walk-ins? — Yes, when we have a free slot.", titled: true },
   { type: "stop", title: "Never do / never offer", desc: "Hard limits — the AI will never do or promise these.", titlePh: "", contentPh: "e.g. Never give medical advice. Never promise same-day appointments.", titled: false },
@@ -28,6 +30,8 @@ export default function KnowledgeManager({ businesses, items }) {
           </select>
         </div>
       )}
+
+      <ImportCard onDone={() => router.refresh()} />
 
       {SECTIONS.map((s) => (
         <Section
@@ -109,6 +113,54 @@ function Row({ row, titled, onChanged }) {
         </button>
         <ConfirmButton onConfirm={remove} disabled={busy} label="Delete" confirmLabel="Yes, delete" className="ml-auto rounded-lg border border-line px-2.5 py-1 text-xs font-semibold text-muted hover:text-red-500" />
       </div>
+    </div>
+  );
+}
+
+// Teach the AI from a website or a PDF (price list, menu, brochure).
+function ImportCard({ onDone }) {
+  const [url, setUrl] = useState("");
+  const [busy, setBusy] = useState("");
+  const [error, setError] = useState("");
+
+  async function fromSite() {
+    if (!url.trim()) { setError("Paste your website address."); return; }
+    setBusy("site"); setError("");
+    const r = await importFromWebsite(url);
+    setBusy("");
+    if (!r?.ok) { setError(r?.error || "Couldn't read that website."); return; }
+    toast.success("Website imported", `Read ${r.pages} page${r.pages === 1 ? "" : "s"} — check the facts below.`);
+    setUrl(""); onDone();
+  }
+  async function fromPdf(e) {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file) return;
+    setBusy("pdf"); setError("");
+    const fd = new FormData();
+    fd.append("file", file);
+    const r = await importFromPdf(fd);
+    setBusy("");
+    if (!r?.ok) { setError(r?.error || "Couldn't read that PDF."); return; }
+    toast.success("PDF imported", "Check the facts below.");
+    onDone();
+  }
+
+  return (
+    <div className="card space-y-4 p-6">
+      <div>
+        <h2 className="text-sm font-semibold text-text">Teach your AI in one click</h2>
+        <p className="mt-0.5 text-xs text-muted">We read your website (and its services, prices, FAQ and contact pages) or a PDF, and save the key facts for your AI. Takes about 20–40 seconds.</p>
+      </div>
+      <div className="flex flex-col gap-2 sm:flex-row">
+        <input value={url} onChange={(e) => { setUrl(e.target.value); setError(""); }} placeholder="https://yourbusiness.com" className="field flex-1" disabled={!!busy} />
+        <button onClick={fromSite} disabled={!!busy} className="btn-brand px-4 py-2 text-sm disabled:opacity-60">{busy === "site" ? "Reading website…" : "Import website"}</button>
+      </div>
+      <label className={`flex cursor-pointer items-center justify-center gap-2 rounded-xl border border-dashed border-line p-4 text-sm font-medium text-text hover:bg-canvas ${busy ? "pointer-events-none opacity-60" : ""}`}>
+        <input type="file" accept="application/pdf,.pdf" className="hidden" onChange={fromPdf} />
+        {busy === "pdf" ? "Reading PDF…" : "📄 Upload a PDF (price list, menu, brochure — up to 4 MB)"}
+      </label>
+      {error && <p className="text-sm font-medium text-red-500">{error}</p>}
     </div>
   );
 }

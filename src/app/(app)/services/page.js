@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import ServicesManager from "@/components/ServicesManager";
+import PackagesManager from "@/components/PackagesManager";
 import { getActiveBusiness } from "@/lib/session";
 
 export default async function ServicesPage() {
@@ -26,6 +27,14 @@ export default async function ServicesPage() {
       .order("created_at", { ascending: true });
     services = data || [];
   }
+  // Packages / bundles (null = the packages SQL hasn't been run yet).
+  let packages = null;
+  if (ids.length) {
+    const { data, error } = await supabase.from("packages")
+      .select("id, name, description, services, price, sessions, validity_days, active")
+      .eq("business_id", ids[0]).order("created_at", { ascending: true });
+    if (!error) packages = data || [];
+  }
 
   return (
     <div className="space-y-6">
@@ -40,7 +49,10 @@ export default async function ServicesPage() {
           <p className="mt-1 text-sm text-muted">Your provider will connect your business shortly.</p>
         </div>
       ) : (
-        <ServicesManager businesses={businesses} services={services} />
+        <>
+          <ServicesManager businesses={businesses} services={services} />
+          <PackagesManager packages={packages} serviceNames={services.filter((s) => s.active).map((s) => s.name)} />
+        </>
       )}
     </div>
   );

@@ -20,7 +20,7 @@ export async function addTeamMember({ business_id, name, role }) {
   return { ok: true };
 }
 
-export async function updateTeamMember({ id, name, role, active }) {
+export async function updateTeamMember({ id, name, role, active, availability, services }) {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return { ok: false, error: "Not signed in" };
@@ -29,10 +29,14 @@ export async function updateTeamMember({ id, name, role, active }) {
   if (name !== undefined) patch.name = name;
   if (role !== undefined) patch.role = role && role.trim() ? role.trim() : null;
   if (active !== undefined) patch.active = active;
+  // Personal hours: same shape as the AI working hours, or null = whenever the business is open.
+  if (availability !== undefined) patch.availability = availability && typeof availability === "object" ? availability : null;
+  if (services !== undefined) patch.services = Array.isArray(services) ? services.map((s) => String(s).trim()).filter(Boolean).slice(0, 100) : [];
 
   const { error } = await supabase.from("team_members").update(patch).eq("id", id);
-  if (error) return { ok: false, error: error.message };
+  if (error) return { ok: false, error: /availability|services/.test(error.message) ? "Staff schedules aren't switched on yet — your provider needs to run a quick database update." : error.message };
   revalidatePath("/team");
+  revalidatePath("/calendar");
   return { ok: true };
 }
 

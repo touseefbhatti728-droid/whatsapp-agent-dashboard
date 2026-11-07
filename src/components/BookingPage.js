@@ -19,6 +19,7 @@ export default function BookingPage({ businessId }) {
   const [info, setInfo] = useState(null);
   const [loadErr, setLoadErr] = useState("");
   const [service, setService] = useState("");
+  const [staff, setStaff] = useState(""); // "" = anyone
   const [date, setDate] = useState("");
   const [slots, setSlots] = useState(null);
   const [time, setTime] = useState("");
@@ -39,13 +40,17 @@ export default function BookingPage({ businessId }) {
 
   const days = useMemo(() => (info ? nextDays(info.timezone) : []), [info]);
   const needService = !!info?.services?.length;
+  // Team members who do the chosen service (none ticked on their profile = all services).
+  const people = (info?.staff || []).filter((m) => !m.services?.length || !service || m.services.some((s) => s.toLowerCase() === service.toLowerCase()));
+  const qs = () => `date=${date}&service=${encodeURIComponent(service)}${staff ? `&staff=${encodeURIComponent(staff)}` : ""}`;
 
   useEffect(() => {
     if (!date || (needService && !service)) return;
     setSlots(null); setTime("");
-    fetch(`${api}/slots?date=${date}&service=${encodeURIComponent(service)}`)
+    fetch(`${api}/slots?${qs()}`)
       .then((r) => r.json()).then((j) => setSlots(j.slots || [])).catch(() => setSlots([]));
-  }, [api, date, service, needService]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [api, date, service, staff, needService]);
 
   async function book(e) {
     e.preventDefault();
@@ -53,12 +58,12 @@ export default function BookingPage({ businessId }) {
     try {
       const r = await fetch(`${api}/book`, {
         method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name, phone, service, date, time }),
+        body: JSON.stringify({ name, phone, service, date, time, staff: staff || undefined }),
       });
       const j = await r.json().catch(() => ({}));
       if (!r.ok) {
         setErr(j.error || "Couldn't book. Please try again.");
-        if (r.status === 409) { setTime(""); setSlots(null); fetch(`${api}/slots?date=${date}&service=${encodeURIComponent(service)}`).then((x) => x.json()).then((x) => setSlots(x.slots || [])); }
+        if (r.status === 409) { setTime(""); setSlots(null); fetch(`${api}/slots?${qs()}`).then((x) => x.json()).then((x) => setSlots(x.slots || [])); }
       } else setDone(j);
     } catch (_) { setErr("Connection problem — please try again."); }
     setBusy(false);
@@ -73,7 +78,7 @@ export default function BookingPage({ businessId }) {
         <div className="text-center">
           <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-brand-tint text-2xl">✓</div>
           <h2 className="mt-4 text-lg font-semibold text-text">You're booked!</h2>
-          <p className="mt-1 text-sm text-muted">{[service, `${dayName(date)} ${dayNum(date)}`, nice(time)].filter(Boolean).join(" · ")}</p>
+          <p className="mt-1 text-sm text-muted">{[service, `${dayName(date)} ${dayNum(date)}`, nice(time), done.staff && `with ${done.staff}`].filter(Boolean).join(" · ")}</p>
           {done.ref && <p className="mt-3 text-sm text-text">Your reference: <b>{done.ref}</b></p>}
           {info.whatsapp && (
             <a href={`https://wa.me/${info.whatsapp}?text=${encodeURIComponent(`Hi! I booked ${done.ref || "an appointment"} online.`)}`}
@@ -92,7 +97,7 @@ export default function BookingPage({ businessId }) {
           <Step n={1} label="Choose a service">
             <div className="grid gap-2">
               {info.services.map((s) => (
-                <button type="button" key={s.name} onClick={() => setService(s.name)}
+                <button type="button" key={s.name} onClick={() => { setService(s.name); setStaff(""); }}
                   className={`flex items-center justify-between rounded-xl border px-4 py-3 text-left text-sm transition ${service === s.name ? "border-brand bg-brand-tint" : "border-line hover:bg-canvas"}`}>
                   <span className="font-medium text-text">{s.name}</span>
                   <span className="text-muted">{[s.price != null && s.price !== "" ? s.price : null, `${s.duration} min`].filter(Boolean).join(" · ")}</span>
@@ -100,6 +105,18 @@ export default function BookingPage({ businessId }) {
               ))}
             </div>
           </Step>
+        )}
+
+        {(!needService || service) && people.length > 1 && (
+          <div>
+            <p className="mb-2 text-sm font-semibold text-text">With <span className="font-normal text-muted">(optional)</span></p>
+            <div className="flex flex-wrap gap-2">
+              {[{ id: "", name: "Anyone available" }, ...people].map((m) => (
+                <button type="button" key={m.id || "any"} onClick={() => setStaff(m.id)}
+                  className={`rounded-full border px-3 py-1.5 text-sm ${staff === m.id ? "border-brand bg-brand-tint text-brand-dark" : "border-line hover:bg-canvas"}`}>{m.name}</button>
+              ))}
+            </div>
+          </div>
         )}
 
         {(!needService || service) && (
