@@ -7,3 +7,7 @@ alter table public.businesses add column if not exists ig_account_id text;
 alter table public.businesses add column if not exists ig_username text;
 create unique index if not exists businesses_fb_page_id_key on public.businesses (fb_page_id) where fb_page_id is not null;
 create unique index if not exists businesses_ig_account_id_key on public.businesses (ig_account_id) where ig_account_id is not null;
+
+-- Shopify order status: the store's domain and an Admin API token with read_orders (server use only).
+alter table public.businesses add column if not exists shopify_domain text;
+alter table public.businesses add column if not exists shopify_token text;

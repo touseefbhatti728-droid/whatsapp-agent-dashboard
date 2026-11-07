@@ -70,6 +70,33 @@ export async function connectFacebookPage(userToken, pageId) {
   } catch (e) { return { ok: false, error: e.message }; }
 }
 
+// Shopify: the owner pastes their store domain and an Admin API token (read_orders).
+// We test it against the store before saving; the token never goes back to the browser.
+export async function saveShopify(domainInput, tokenInput) {
+  const { biz, error } = await ctx();
+  if (error) return { ok: false, error };
+  const db = adminDb();
+  const domain = String(domainInput || "").trim().toLowerCase().replace(/^https?:\/\//, "").replace(/\/.*$/, "");
+  const token = String(tokenInput || "").trim();
+  if (!domain && !token) {
+    const { error: e } = await db.from("businesses").update({ shopify_domain: null, shopify_token: null }).eq("id", biz.id);
+    if (e) return { ok: false, error: e.message };
+    revalidatePath("/channels");
+    return { ok: true, removed: true };
+  }
+  if (!/^[a-z0-9][a-z0-9-]*\.myshopify\.com$/.test(domain)) return { ok: false, error: "Use your store's myshopify.com address, e.g. mystore.myshopify.com" };
+  if (!/^shpat_[a-zA-Z0-9]{20,}$/.test(token)) return { ok: false, error: "That doesn't look like an Admin API access token (it starts with shpat_)." };
+  try {
+    const r = await fetch(`https://${domain}/admin/api/2025-01/orders.json?limit=1&status=any&fields=id`, { headers: { "X-Shopify-Access-Token": token } });
+    if (r.status === 401 || r.status === 403) return { ok: false, error: "Shopify refused the token — make sure the app has the read_orders permission and is installed." };
+    if (!r.ok) return { ok: false, error: `Shopify answered ${r.status}. Check the store address.` };
+  } catch (e) { return { ok: false, error: "Couldn't reach Shopify: " + e.message }; }
+  const { error: e } = await db.from("businesses").update({ shopify_domain: domain, shopify_token: token }).eq("id", biz.id);
+  if (e) return { ok: false, error: /shopify/.test(e.message) ? "Shopify turns on after a quick database update by your provider." : e.message };
+  revalidatePath("/channels");
+  return { ok: true, domain };
+}
+
 export async function disconnectFacebookPage() {
   const { biz, error } = await ctx();
   if (error) return { ok: false, error };
