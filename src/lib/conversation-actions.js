@@ -16,7 +16,9 @@ export async function sendReply({ phone, text }) {
   // owners: their business · admins: the customer they are managing
   const activeBizId = (await getActiveBusiness(user?.id))?.id ?? "00000000-0000-0000-0000-000000000000"; // no business -> matches nothing
 
-  const to = String(phone || "").replace(/\D/g, "");
+  // Website chat visitors ("web:<id>") see the reply in the chat widget, not on WhatsApp.
+  const isWeb = /^web:[a-z0-9-]{8,40}$/i.test(String(phone || ""));
+  const to = isWeb ? String(phone) : String(phone || "").replace(/\D/g, "");
   const body = String(text || "").trim();
   if (!to) return { ok: false, error: "Missing customer number." };
   if (!body) return { ok: false, error: "Type a message first." };
@@ -26,6 +28,7 @@ export async function sendReply({ phone, text }) {
     .from("businesses").select("id, meta_phone_number_id, meta_access_token")
     .eq("id", activeBizId).order("created_at", { ascending: true }).limit(1).maybeSingle();
   if (!biz) return { ok: false, error: "No business found for this account." };
+  if (isWeb) return saveOwnerReply(biz.id, to, body);
   if (!biz.meta_phone_number_id || !biz.meta_access_token) {
     return { ok: false, error: "Connect WhatsApp first (menu → Connect WhatsApp)." };
   }
@@ -51,18 +54,22 @@ export async function sendReply({ phone, text }) {
     return { ok: false, error: "Couldn't reach WhatsApp: " + e.message };
   }
 
-  // Save it so it shows in the thread and the AI sees it in its history.
+  return saveOwnerReply(biz.id, to, body);
+}
+
+// Save the owner's reply so it shows in the thread (and in an open website chat),
+// and keep the AI quiet for that customer during the handover pause (default 2 h).
+async function saveOwnerReply(businessId, to, body) {
   const db = adminDb();
-  if (db) {
-    await db.from("messages").insert({ business_id: biz.id, customer_phone: to, role: "assistant", content: body });
-    // A person has taken over this chat: keep the AI quiet for the handover pause (default 2 h).
-    const { data: b2 } = await db.from("businesses").select("handover_pause_minutes").eq("id", biz.id).maybeSingle();
-    const minutes = Number(b2?.handover_pause_minutes) > 0 ? Number(b2.handover_pause_minutes) : 120;
-    await db.from("ai_pauses").upsert(
-      { business_id: biz.id, customer_phone: to, until: new Date(Date.now() + minutes * 60000).toISOString(), reason: "owner_replied_in_dashboard" },
-      { onConflict: "business_id,customer_phone" },
-    );
-  }
+  if (!db) return { ok: false, error: "Server not configured (SUPABASE_SERVICE_ROLE_KEY missing)." };
+  const { error } = await db.from("messages").insert({ business_id: businessId, customer_phone: to, role: "assistant", content: body });
+  if (error) return { ok: false, error: error.message };
+  const { data: b2 } = await db.from("businesses").select("handover_pause_minutes").eq("id", businessId).maybeSingle();
+  const minutes = Number(b2?.handover_pause_minutes) > 0 ? Number(b2.handover_pause_minutes) : 120;
+  await db.from("ai_pauses").upsert(
+    { business_id: businessId, customer_phone: to, until: new Date(Date.now() + minutes * 60000).toISOString(), reason: "owner_replied_in_dashboard" },
+    { onConflict: "business_id,customer_phone" },
+  );
   revalidatePath("/conversations");
   return { ok: true };
 }

@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createAppointment, updateAppointment, cancelAppointment } from "@/lib/booking-actions";
 import { toast } from "@/lib/toast";
+import { sourceLabel } from "@/lib/phone";
 
 // A slot opened up — remind the owner that people are waiting for that day.
 function waitlistNote(n) {
@@ -50,7 +51,7 @@ function BookingRow({ b, tz, onOpen }) {
       </div>
       <div className="hidden shrink-0 flex-col items-end gap-1 sm:flex">
         {b.ref_no && <Pill>BK-{b.ref_no}</Pill>}
-        <Pill tone="muted">{b.source === "dashboard" ? "Added by you" : "WhatsApp AI"}</Pill>
+        <Pill tone="muted">{sourceLabel(b.source)}</Pill>
       </div>
     </button>
   );
@@ -103,7 +104,7 @@ function BookingDrawer({ b, tz, services, onClose }) {
                 <p className="truncate text-lg font-semibold text-text">{b.customer_name || "Unknown"}</p>
                 <div className="mt-1 flex flex-wrap gap-1.5">
                   {b.ref_no && <Pill>BK-{b.ref_no}</Pill>}
-                  <Pill tone="muted">{b.source === "dashboard" ? "Added by you" : "Booked by WhatsApp AI"}</Pill>
+                  <Pill tone="muted">{b.source === "dashboard" ? "Added by you" : "Booked by " + sourceLabel(b.source)}</Pill>
                 </div>
               </div>
             </div>
