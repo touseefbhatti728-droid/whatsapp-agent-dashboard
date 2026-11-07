@@ -26,6 +26,7 @@ const IcTag = (<svg {...S}><path d="M20.59 13.41 13.42 20.6a2 2 0 0 1-2.83 0L2 1
 const IcBook = (<svg {...S}><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>);
 const IcUser = (<svg {...S}><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>);
 const IcBell = (<svg {...S}><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9M13.73 21a2 2 0 0 1-3.46 0"/></svg>);
+const IcGlobe = (<svg {...S}><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a14 14 0 0 1 0 18M12 3a14 14 0 0 0 0 18"/></svg>);
 const IcMega = (<svg {...S}><path d="M3 11v2a1 1 0 0 0 1 1h2l4 4V6L6 10H4a1 1 0 0 0-1 1z"/><path d="M14 8a4 4 0 0 1 0 8M18 5a8 8 0 0 1 0 14"/></svg>);
 
 // Start/end of "today" in the business's own timezone (the server runs in UTC).
@@ -131,6 +132,7 @@ export default async function AppLayout({ children }) {
           : <NavItem href="/billing" label="Conversations" icon={IcChat} badge="Pro" />}
       </Group>
       <Group title="Grow">
+        <NavItem href="/website" label="Website & booking" icon={IcGlobe} />
         <NavItem href="/marketing" label="Marketing" icon={IcMega} />
         <NavItem href="/insights" label="Insights" icon={IcChart} />
         {hasWebhooks

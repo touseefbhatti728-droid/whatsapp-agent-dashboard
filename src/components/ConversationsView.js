@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { sendReply } from "@/lib/conversation-actions";
+import { formatPhone } from "@/lib/phone";
 import { toast } from "@/lib/toast";
 
 function initials(s) {
@@ -95,10 +96,10 @@ export default function ConversationsView({ conversations, showBusiness }) {
               }`}
             >
               <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-ink text-xs font-semibold text-white">
-                {initials(c.name || c.phone)}
+                {initials(c.name || formatPhone(c.phone))}
               </div>
               <div className="min-w-0 flex-1">
-                <p className="truncate text-sm font-medium text-text">{c.name || c.phone}</p>
+                <p className="truncate text-sm font-medium text-text">{c.name || formatPhone(c.phone)}</p>
                 <p className="truncate text-xs text-muted">{c.preview}</p>
                 {showBusiness && <p className="truncate text-[11px] text-muted/70">{c.businessName}</p>}
               </div>
@@ -115,11 +116,11 @@ export default function ConversationsView({ conversations, showBusiness }) {
             <div className="flex items-center gap-3 border-b border-line px-4 py-3">
               <button onClick={() => setActiveKey(null)} className="text-muted hover:text-text md:hidden">←</button>
               <div className="flex h-9 w-9 items-center justify-center rounded-full bg-brand text-xs font-semibold text-white">
-                {initials(active.name || active.phone)}
+                {initials(active.name || formatPhone(active.phone))}
               </div>
               <div className="min-w-0">
-                <p className="truncate text-sm font-semibold text-text">{active.name || active.phone}</p>
-                <p className="truncate text-xs text-muted">{active.phone}{showBusiness ? ` · ${active.businessName}` : ""}</p>
+                <p className="truncate text-sm font-semibold text-text">{active.name || formatPhone(active.phone)}</p>
+                <p className="truncate text-xs text-muted">{formatPhone(active.phone)}{showBusiness ? ` · ${active.businessName}` : ""}</p>
               </div>
             </div>
             <div className="flex max-h-[64vh] flex-col gap-3 overflow-y-auto bg-canvas/40 px-4 py-5">
