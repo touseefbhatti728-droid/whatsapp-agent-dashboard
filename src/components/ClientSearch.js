@@ -19,16 +19,19 @@ function Status({ c }) {
     : <span className="pill bg-brand-tint text-brand-dark">Active</span>;
 }
 
-export default function ClientSearch({ clients }) {
+export default function ClientSearch({ clients, initialQ = "", initialFilter = "all" }) {
   const router = useRouter();
-  const [q, setQ] = useState("");
-  const [filter, setFilter] = useState("all"); // all | connected | not | suspended
+  const [q, setQ] = useState(initialQ);
+  const [filter, setFilter] = useState(initialFilter); // all | paying | trial | past_due | connected | not | suspended
   const filtered = clients.filter((c) => {
     const s = `${c.name || ""} ${c.owner_email || ""} ${c.whatsapp_number || ""} ${c.location || ""}`.toLowerCase();
     if (!s.includes(q.trim().toLowerCase())) return false;
     if (filter === "connected") return c.connected;
     if (filter === "not") return !c.connected;
     if (filter === "suspended") return c.status === "suspended";
+    if (filter === "paying") return c.sub_status === "active";
+    if (filter === "trial") return c.sub_status === "trialing";
+    if (filter === "past_due") return c.sub_status === "past_due";
     return true;
   });
   const open = (c) => router.push(`/admin/clients/${c.id}`);
@@ -38,7 +41,7 @@ export default function ClientSearch({ clients }) {
       <div className="flex flex-wrap items-center gap-2">
         <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search by name, email, number…" className="field max-w-sm" />
         <div className="flex rounded-xl border border-line bg-surface p-0.5">
-          {[["all", "All"], ["connected", "WhatsApp connected"], ["not", "Not connected"], ["suspended", "Suspended"]].map(([k, l]) => (
+          {[["all", "All"], ["paying", "Paying"], ["trial", "Trial"], ["past_due", "Payment failed"], ["connected", "WhatsApp on"], ["not", "No WhatsApp"], ["suspended", "Suspended"]].map(([k, l]) => (
             <button key={k} onClick={() => setFilter(k)} className={`rounded-lg px-3 py-1.5 text-xs font-semibold ${filter === k ? "bg-brand text-white" : "text-muted hover:text-text"}`}>{l}</button>
           ))}
         </div>

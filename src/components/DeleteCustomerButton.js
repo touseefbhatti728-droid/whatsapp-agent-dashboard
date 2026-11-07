@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
-import { deleteCustomer } from "@/app/(app)/admin/actions";
+import { deleteCustomer } from "@/app/(admin)/admin/actions";
 import { toast } from "@/lib/toast";
 
 // Delete a customer (business) for good. Asks the admin to type the business name first.

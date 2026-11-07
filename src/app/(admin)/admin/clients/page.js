@@ -2,7 +2,8 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import ClientSearch from "@/components/ClientSearch";
 
-export default async function ClientsPage() {
+export default async function ClientsPage({ searchParams }) {
+  const sp = (await searchParams) || {};
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   const { data: profile } = await supabase.from("profiles").select("is_admin").eq("id", user.id).single();
@@ -26,7 +27,7 @@ export default async function ClientsPage() {
         <h1 className="page-title">Customers</h1>
         <p className="page-sub">{clients.length} businesses that use NextReply. Their own customers are their clients.</p>
       </div>
-      <ClientSearch clients={clients} />
+      <ClientSearch clients={clients} initialQ={String(sp.q || "")} initialFilter={String(sp.f || "all")} />
     </div>
   );
 }
