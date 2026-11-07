@@ -58,6 +58,9 @@ export async function connectFacebookPage(userToken, pageId) {
     const sub = await fetch(`${G}/${page.id}/subscribed_apps?subscribed_fields=messages,messaging_postbacks,message_echoes&access_token=${encodeURIComponent(page.access_token)}`, { method: "POST" });
     const subj = await sub.json();
     if (!sub.ok || subj.success !== true) return { ok: false, error: "Couldn't link the Page to the AI: " + (subj?.error?.message || "Facebook refused the subscription") };
+    // Lead Ads too, when the app has leads_retrieval — a separate call so a missing permission
+    // never blocks Messenger/Instagram.
+    await fetch(`${G}/${page.id}/subscribed_apps?subscribed_fields=messages,messaging_postbacks,message_echoes,leadgen&access_token=${encodeURIComponent(page.access_token)}`, { method: "POST" }).catch(() => {});
 
     const ig = page.instagram_business_account || null;
     const { error: e } = await db.from("businesses").update({

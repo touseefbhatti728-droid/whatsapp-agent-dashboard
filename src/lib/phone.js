@@ -14,5 +14,5 @@ export function formatPhone(v) {
 
 // Where a booking came from, for labels in the calendar and client lists.
 export function sourceLabel(source) {
-  return { dashboard: "Added by you", website: "Website chat AI", booking_page: "Online booking page", messenger: "Messenger AI", instagram: "Instagram AI" }[source] || "WhatsApp AI";
+  return { dashboard: "Added by you", website: "Website chat AI", booking_page: "Online booking page", messenger: "Messenger AI", instagram: "Instagram AI", phone: "Phone AI" }[source] || "WhatsApp AI";
 }

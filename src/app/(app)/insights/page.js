@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { getActiveBusiness } from "@/lib/session";
+import { sourceLabel } from "@/lib/phone";
 
 export default async function InsightsPage() {
   const supabase = await createClient();
@@ -19,6 +20,20 @@ export default async function InsightsPage() {
     bookings = data || [];
   }
   const impact = ids.length ? await aiImpact(supabase, ids[0], businesses[0]?.timezone || "Asia/Dubai", bookings) : null;
+
+  // Where bookings come from (all time) and the average feedback rating.
+  const bySource = new Map();
+  for (const b of bookings) {
+    const label = sourceLabel(b.source).replace(/ AI$/, "");
+    bySource.set(label, (bySource.get(label) || 0) + 1);
+  }
+  const channels = [...bySource.entries()].sort((a, b) => b[1] - a[1]);
+  const channelMax = Math.max(1, ...channels.map((c) => c[1]));
+  let rating = null;
+  if (ids.length) {
+    const { data: fb, error: fbErr } = await supabase.from("feedback").select("rating").eq("business_id", ids[0]).not("rating", "is", null);
+    if (!fbErr && fb?.length) rating = { avg: (fb.reduce((s, f) => s + f.rating, 0) / fb.length).toFixed(1), count: fb.length, happy: Math.round((fb.filter((f) => f.rating >= 4).length / fb.length) * 100) };
+  }
 
   const now = new Date();
   const startMonth = new Date(now.getFullYear(), now.getMonth(), 1);
@@ -69,6 +84,35 @@ export default async function InsightsPage() {
       </section>
 
       {impact && <ImpactCard impact={impact} />}
+
+      {(channels.length > 0 || rating) && (
+        <div className="grid gap-4 lg:grid-cols-2">
+          {channels.length > 0 && (
+            <div className="card p-5">
+              <h2 className="text-sm font-semibold text-text">Where bookings come from</h2>
+              <div className="mt-5 space-y-3">
+                {channels.map(([name, count]) => (
+                  <div key={name} className="flex items-center gap-3">
+                    <span className="w-36 shrink-0 truncate text-sm text-text">{name}</span>
+                    <div className="h-3 flex-1 overflow-hidden rounded-full bg-canvas">
+                      <div className="h-full rounded-full bg-brand" style={{ width: `${(count / channelMax) * 100}%` }} />
+                    </div>
+                    <span className="w-8 shrink-0 text-right text-sm font-semibold text-text">{count}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+          {rating && (
+            <div className="card p-5">
+              <h2 className="text-sm font-semibold text-text">Customer feedback</h2>
+              <p className="mt-4 text-[34px] font-bold leading-none text-text">★ {rating.avg}</p>
+              <p className="mt-2 text-sm text-muted">from {rating.count} rating{rating.count === 1 ? "" : "s"} · {rating.happy}% gave 4–5 stars</p>
+              <a href="/followups" className="mt-3 inline-block text-sm font-semibold text-brand">See comments →</a>
+            </div>
+          )}
+        </div>
+      )}
 
       {bookings.length === 0 ? (
         <div className="card px-5 py-16 text-center">
