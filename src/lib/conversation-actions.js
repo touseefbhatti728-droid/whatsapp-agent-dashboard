@@ -85,7 +85,7 @@ export async function sendReply({ phone, text }) {
 async function saveOwnerReply(businessId, to, body) {
   const db = adminDb();
   if (!db) return { ok: false, error: "Server not configured (SUPABASE_SERVICE_ROLE_KEY missing)." };
-  const { error } = await db.from("messages").insert({ business_id: businessId, customer_phone: to, role: "assistant", content: body });
+  const { error } = await db.from("messages").insert({ business_id: businessId, customer_phone: to, role: "staff", content: body }); // staff = typed by a person, not the AI
   if (error) return { ok: false, error: error.message };
   const { data: b2 } = await db.from("businesses").select("handover_pause_minutes").eq("id", businessId).maybeSingle();
   const minutes = Number(b2?.handover_pause_minutes) > 0 ? Number(b2.handover_pause_minutes) : 120;
@@ -93,6 +93,29 @@ async function saveOwnerReply(businessId, to, body) {
     { business_id: businessId, customer_phone: to, until: new Date(Date.now() + minutes * 60000).toISOString(), reason: "owner_replied_in_dashboard" },
     { onConflict: "business_id,customer_phone" },
   );
+  revalidatePath("/conversations");
+  return { ok: true };
+}
+
+// Pause the AI for one chat (minutes > 0) or switch it back on (minutes = 0).
+export async function setAiPause({ phone, minutes }) {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { ok: false, error: "Not signed in" };
+  const biz = await getActiveBusiness(user.id);
+  if (!biz) return { ok: false, error: "No business found for this account." };
+  const to = String(phone || "");
+  if (!/^(web:[a-z0-9-]{8,40}|(fb|ig):\d{5,30}|\d{6,20})$/i.test(to)) return { ok: false, error: "Unknown chat." };
+  const db = adminDb();
+  if (!db) return { ok: false, error: "Server not configured." };
+  const m = Math.max(0, Math.min(60 * 24 * 7, Number(minutes) || 0));
+  const { error } = m === 0
+    ? await db.from("ai_pauses").delete().eq("business_id", biz.id).eq("customer_phone", to)
+    : await db.from("ai_pauses").upsert(
+      { business_id: biz.id, customer_phone: to, until: new Date(Date.now() + m * 60000).toISOString(), reason: "paused_in_dashboard" },
+      { onConflict: "business_id,customer_phone" },
+    );
+  if (error) return { ok: false, error: error.message };
   revalidatePath("/conversations");
   return { ok: true };
 }

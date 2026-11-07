@@ -100,7 +100,7 @@ export async function POST(req) {
     });
     const j = await res.json().catch(() => ({}));
     if (!res.ok) return fail("WhatsApp refused it: " + (j?.error?.message || res.status));
-    await db.from("messages").insert({ business_id: businessId, customer_phone: to, role: "assistant", content: text });
+    await db.from("messages").insert({ business_id: businessId, customer_phone: to, role: "staff", content: text });
     return done(`Sent to +${to} from ${clientName}'s WhatsApp.`);
   }
 

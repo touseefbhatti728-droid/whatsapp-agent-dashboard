@@ -5,7 +5,7 @@ import { setBusinessStatus } from "../../actions";
 import SubscriptionForm from "@/components/SubscriptionForm";
 import { manageBusiness } from "@/lib/manage-actions";
 import { fixWhatsappNumber } from "../../actions";
-import { phoneDigits, formatPhone } from "@/lib/phone";
+import { phoneDigits, formatPhone, channelOf, CHANNELS, senderOf } from "@/lib/phone";
 
 function when(ts) {
   if (!ts) return "—";
@@ -168,14 +168,21 @@ export default async function ClientDetail({ params }) {
 
       {/* Latest chats */}
       <section className="card overflow-hidden">
-        <div className="flex items-center justify-between border-b border-line px-5 py-4"><h2 className="text-sm font-semibold text-text">Latest WhatsApp messages</h2><span className="text-xs text-muted">{msgCount || 0} total</span></div>
+        <div className="flex items-center justify-between border-b border-line px-5 py-4"><h2 className="text-sm font-semibold text-text">Latest messages <span className="font-normal text-muted">· all channels</span></h2><span className="text-xs text-muted">{msgCount || 0} total</span></div>
         {(msgs?.length || 0) === 0 ? <p className="px-5 py-8 text-center text-sm text-muted">No messages yet.</p> : (
-          <ul className="divide-y divide-line">{msgs.map((m, i) => (
-            <li key={i} className="flex gap-3 px-5 py-2.5 text-sm">
-              <span className={`pill h-fit shrink-0 ${m.role === "user" ? "bg-canvas text-muted" : "bg-brand-tint text-brand-dark"}`}>{m.role === "user" ? formatPhone(m.customer_phone) : "AI"}</span>
-              <span className="min-w-0 flex-1 text-text">{m.content}</span>
-              <span className="shrink-0 text-[11px] text-muted">{when(m.created_at)}</span>
-            </li>))}</ul>)}
+          <ul className="divide-y divide-line">{msgs.map((m, i) => {
+            const who = senderOf(m);
+            const ch = String(m.content || "").startsWith("📞") ? "phone" : channelOf(m.customer_phone);
+            return (
+              <li key={i} className="grid grid-cols-[auto_auto_1fr_auto] items-start gap-3 px-5 py-2.5 text-sm">
+                <span className={`pill h-fit w-[92px] justify-center ${who === "customer" ? "bg-canvas text-muted" : who === "staff" ? "bg-ink text-white" : "bg-brand-tint text-brand-dark"}`}>
+                  {who === "customer" ? "Customer" : who === "staff" ? "Staff reply" : "Reply by AI"}
+                </span>
+                <span className={`pill h-fit ${CHANNELS[ch].cls}`}>{CHANNELS[ch].label}</span>
+                <span className="min-w-0 text-text">{m.content}</span>
+                <span className="shrink-0 text-[11px] text-muted">{when(m.created_at)}</span>
+              </li>);
+          })}</ul>)}
       </section>
 
       {/* Bookings */}
