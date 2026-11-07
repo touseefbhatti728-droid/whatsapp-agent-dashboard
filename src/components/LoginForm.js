@@ -12,6 +12,12 @@ export default function LoginForm({ appName = "NextReply" }) {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [gLoading, setGLoading] = useState(false);
+  // Where to go after login (e.g. back to /connect from the WordPress plugin). Same-site paths only.
+  const [next, setNext] = useState("/dashboard");
+  useEffect(() => {
+    const n = new URLSearchParams(window.location.search).get("next") || "";
+    if (n.startsWith("/") && !n.startsWith("//")) setNext(n);
+  }, []);
 
   async function handleSignIn() {
     setError(""); setLoading(true);
@@ -19,7 +25,7 @@ export default function LoginForm({ appName = "NextReply" }) {
     const { error } = await supabase.auth.signInWithPassword({ email: email.trim().toLowerCase(), password });
     setLoading(false);
     if (error) { setError("That email and password didn't match. Try again."); return; }
-    router.push("/dashboard"); router.refresh();
+    router.push(next); router.refresh();
   }
 
   async function googleLogin() {
@@ -27,7 +33,7 @@ export default function LoginForm({ appName = "NextReply" }) {
     const supabase = createClient();
     const { error: gErr } = await supabase.auth.signInWithOAuth({
       provider: "google",
-      options: { redirectTo: `${window.location.origin}/auth/callback?next=/dashboard` },
+      options: { redirectTo: `${window.location.origin}/auth/callback?next=${encodeURIComponent(next)}` },
     });
     if (gErr) { setGLoading(false); setError(gErr.message); }
   }
