@@ -18,7 +18,8 @@ export async function sendReply({ phone, text }) {
 
   // Website chat visitors ("web:<id>") see the reply in the chat widget, not on WhatsApp.
   const isWeb = /^web:[a-z0-9-]{8,40}$/i.test(String(phone || ""));
-  const to = isWeb ? String(phone) : String(phone || "").replace(/\D/g, "");
+  const social = /^(fb|ig):\d{5,30}$/.exec(String(phone || "")); // Messenger / Instagram DM
+  const to = isWeb || social ? String(phone) : String(phone || "").replace(/\D/g, "");
   const body = String(text || "").trim();
   if (!to) return { ok: false, error: "Missing customer number." };
   if (!body) return { ok: false, error: "Type a message first." };
@@ -29,6 +30,28 @@ export async function sendReply({ phone, text }) {
     .eq("id", activeBizId).order("created_at", { ascending: true }).limit(1).maybeSingle();
   if (!biz) return { ok: false, error: "No business found for this account." };
   if (isWeb) return saveOwnerReply(biz.id, to, body);
+  if (social) {
+    // Messenger / Instagram allow free replies within 24 hours of the customer's last message.
+    const db0 = adminDb();
+    const { data: page } = await db0.from("businesses").select("fb_page_id, fb_page_token").eq("id", biz.id).maybeSingle();
+    if (!page?.fb_page_id || !page?.fb_page_token) return { ok: false, error: "Connect your Facebook Page first (Instagram & Messenger)." };
+    const { data: lastMsg } = await db0.from("messages").select("created_at").eq("business_id", biz.id).eq("customer_phone", to).eq("role", "user")
+      .order("created_at", { ascending: false }).limit(1).maybeSingle();
+    if (!lastMsg || Date.now() - new Date(lastMsg.created_at).getTime() > DAY_MS) {
+      return { ok: false, error: "Messenger and Instagram only allow replies within 24 hours of the customer's last message." };
+    }
+    try {
+      const res = await fetch(`https://graph.facebook.com/${GV}/${page.fb_page_id}/messages?access_token=${encodeURIComponent(page.fb_page_token)}`, {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ recipient: { id: social[0].split(":")[1] }, messaging_type: "RESPONSE", message: { text: body.slice(0, 1900) } }),
+      });
+      const j = await res.json();
+      if (!res.ok) return { ok: false, error: j?.error?.message || "Facebook didn't accept the message." };
+    } catch (e) {
+      return { ok: false, error: "Couldn't reach Facebook: " + e.message };
+    }
+    return saveOwnerReply(biz.id, to, body);
+  }
   if (!biz.meta_phone_number_id || !biz.meta_access_token) {
     return { ok: false, error: "Connect WhatsApp first (menu → Connect WhatsApp)." };
   }
