@@ -12,6 +12,7 @@ const STATUS_LABEL = { trialing: "Free trial", active: "Active", past_due: "Paym
 
 const IcChat = (<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>);
 const IcSpark = (<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M12 3l1.9 4.8L18.5 9l-4.6 1.2L12 15l-1.9-4.8L5.5 9l4.6-1.2z"/></svg>);
+const IcGlobe = (<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a14 14 0 0 1 0 18M12 3a14 14 0 0 0 0 18"/></svg>);
 const IcGrid = (<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/></svg>);
 
 const PLAN_META = {
@@ -111,8 +112,35 @@ export default async function BillingPage() {
       )}
 
       <div>
-        <h2 className="mb-4 text-sm font-semibold text-text">Available plans</h2>
-        <div className="grid items-start gap-4 lg:grid-cols-3">
+        <div className="mb-4 flex flex-wrap items-end justify-between gap-2">
+          <div>
+            <h2 className="text-base font-semibold text-text">Plans</h2>
+            <p className="text-xs text-muted">Start free on your website. Upgrade when you want WhatsApp, Instagram, Messenger and unlimited chats.</p>
+          </div>
+          <div className="flex flex-wrap gap-2 text-[11px] font-medium text-muted">
+            <span className="pill bg-surface">🔒 Secure checkout by Stripe</span>
+            <span className="pill bg-surface">↺ Cancel anytime</span>
+            {trialEligible && <span className="pill bg-brand-tint text-brand-dark">7 days free</span>}
+          </div>
+        </div>
+        <div className="grid items-start gap-4 md:grid-cols-2 xl:grid-cols-4">
+          <div className={`flex flex-col rounded-[22px] border bg-surface p-6 ${!hasSub && !adminGranted ? "border-brand ring-1 ring-brand" : "border-line"}`}>
+            <div className="flex items-center justify-between">
+              <span className="flex h-11 w-11 items-center justify-center rounded-xl bg-canvas text-muted">{IcGlobe}</span>
+              {!hasSub && !adminGranted && <span className="pill bg-brand-tint text-brand-dark">Current</span>}
+            </div>
+            <p className="mt-4 text-lg font-bold text-text">Free</p>
+            <p className="mt-1 text-sm text-muted">Try the AI on your own website, no card needed.</p>
+            <p className="mt-4 text-3xl font-extrabold text-text">$0<span className="text-base font-medium text-muted">/mo</span></p>
+            <div className="my-5 h-px w-full bg-line" />
+            <p className="mb-3 text-[11px] font-semibold uppercase tracking-wide text-muted">What you get</p>
+            <ul className="flex-1 space-y-2.5">
+              {["AI chat on your website — 50 chats a month", "Online booking page", "Bookings in your calendar", "WordPress plugin"].map((f, i) => (
+                <li key={i} className="flex gap-2.5 text-sm text-text/80"><Check />{f}</li>
+              ))}
+            </ul>
+            <div className="mt-6 rounded-xl bg-canvas px-4 py-2.5 text-center text-xs font-semibold text-muted">{!hasSub && !adminGranted ? `${freeUsed} of ${FREE_CHATS} chats used` : "Included"}</div>
+          </div>
           {(plans || []).map((p) => {
             const meta = PLAN_META[String(p.name).toLowerCase()] || { tagline: "", header: "What you get", icon: IcChat };
             const current = hasSub && String(biz?.plan || "").toLowerCase() === String(p.name).toLowerCase();
@@ -122,7 +150,7 @@ export default async function BillingPage() {
 
             if (popular) {
               return (
-                <div key={p.name} className="relative flex flex-col rounded-[22px] bg-ink p-6 text-white shadow-[0_30px_60px_-30px_rgba(17,12,40,0.7)] lg:-mt-3 lg:mb-3">
+                <div key={p.name} className="relative flex flex-col rounded-[22px] bg-ink p-6 text-white shadow-[0_30px_60px_-30px_rgba(17,12,40,0.7)] xl:-mt-3 xl:mb-3">
                   <span className="mb-4 inline-flex w-fit items-center gap-1 rounded-full bg-brand px-3 py-1 text-[11px] font-semibold uppercase tracking-wide text-white">★ Most Popular</span>
                   <span className="flex h-11 w-11 items-center justify-center rounded-xl bg-brand text-white">{meta.icon}</span>
                   <p className="mt-4 text-lg font-bold">{p.name}</p>
@@ -161,6 +189,7 @@ export default async function BillingPage() {
             );
           })}
         </div>
+        <Compare plans={plans || []} />
         <p className="mt-4 text-xs text-muted">{trialEligible ? "7 days free, then billed monthly. A card is required to start; cancel anytime before the trial ends and you won’t be charged." : "Secure checkout by Stripe. Change plan, update your card or cancel anytime from Manage subscription."}</p>
       </div>
     </div>
@@ -172,5 +201,45 @@ function Check({ dark }) {
     <span className={`mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded-full ${dark ? "bg-brand text-white" : "bg-brand-tint text-brand"}`}>
       <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6 9 17l-5-5" /></svg>
     </span>
+  );
+}
+
+// What each plan includes, side by side.
+function Compare({ plans }) {
+  const paid = plans.map((p) => ({ name: p.name, key: String(p.name).toLowerCase(), limit: p.monthly_booking_limit, history: p.chat_history !== false }));
+  const cols = [{ name: "Free", key: "free" }, ...paid];
+  const yes = <span className="text-brand">✓</span>;
+  const no = <span className="text-muted/50">—</span>;
+  const rows = [
+    ["Website chat", (c) => (c.key === "free" ? "50 chats / month" : "Unlimited")],
+    ["Online booking page", () => yes],
+    ["WhatsApp AI receptionist", (c) => (c.key === "free" ? no : yes)],
+    ["Instagram & Messenger DMs", (c) => (c.key === "free" ? no : yes)],
+    ["Customers can send photos", (c) => (c.key === "free" ? no : yes)],
+    ["Bookings per month", (c) => (c.key === "free" ? "Booking page only" : c.limit == null ? "Unlimited" : c.limit.toLocaleString())],
+    ["Full conversation history", (c) => (c.key === "free" ? no : c.history ? yes : no)],
+    ["CRM / Zapier webhook", (c) => (c.key === "business" ? yes : no)],
+    ["AI phone receptionist", (c) => (c.key === "free" ? no : "Add-on")],
+  ];
+  return (
+    <div className="card mt-6 overflow-hidden">
+      <div className="border-b border-line px-5 py-4"><h3 className="text-sm font-semibold text-text">Compare plans</h3></div>
+      <div className="overflow-x-auto">
+        <table className="w-full min-w-[640px] text-sm">
+          <thead><tr className="border-b border-line">
+            <th className="th w-[34%]">Feature</th>
+            {cols.map((c) => <th key={c.key} className={`th text-center ${c.key === "pro" ? "text-brand" : ""}`}>{c.name}</th>)}
+          </tr></thead>
+          <tbody className="divide-y divide-line">
+            {rows.map(([label, fn]) => (
+              <tr key={label}>
+                <td className="cell text-text">{label}</td>
+                {cols.map((c) => <td key={c.key} className={`cell text-center text-text/80 ${c.key === "pro" ? "bg-brand-tint/30" : ""}`}>{fn(c)}</td>)}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
   );
 }
