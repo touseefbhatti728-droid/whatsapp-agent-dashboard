@@ -5,6 +5,7 @@ import NavItem from "@/components/NavItem";
 import MobileNav from "@/components/MobileNav";
 import NotificationBell from "@/components/NotificationBell";
 import Toaster from "@/components/Toaster";
+import LiveInbox from "@/components/LiveInbox";
 import { getBranding } from "@/lib/branding";
 import { getSessionUser, getIsAdmin, getActiveBusiness } from "@/lib/session";
 import { stopManaging } from "@/lib/manage-actions";
@@ -226,6 +227,7 @@ export default async function AppLayout({ children }) {
         </div>
 
         {/* Main */}
+        <LiveInbox />
         <main className="flex-1 px-4 pb-16 pt-20 sm:px-6 md:px-8 md:pt-8">
           <div className="mx-auto max-w-6xl">
             {managing && (
