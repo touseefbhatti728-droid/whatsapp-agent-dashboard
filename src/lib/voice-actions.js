@@ -33,6 +33,8 @@ export async function setupVoiceLine({ areaCode } = {}) {
   if (error) return { ok: false, error };
   const db = adminDb();
   if (!("voice_token" in biz)) return { ok: false, error: "The phone receptionist turns on after a quick database update by your provider." };
+  // Calls cost per minute, so the phone line is for paid plans only (not free or trial).
+  if (biz.sub_status !== "active") return { ok: false, error: "The phone receptionist is available on paid plans. Start or upgrade your plan in Billing first." };
   try {
     const token = biz.voice_token || crypto.randomBytes(24).toString("hex");
     const base = `${BACKEND_URL}/voice/vapi/${biz.id}/${token}`;

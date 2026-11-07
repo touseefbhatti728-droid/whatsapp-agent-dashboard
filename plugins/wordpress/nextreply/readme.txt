@@ -4,7 +4,7 @@ Tags: chatbot, booking, appointments, whatsapp, ai
 Requires at least: 5.6
 Tested up to: 6.7
 Requires PHP: 7.2
-Stable tag: 1.0.1
+Stable tag: 1.0.2
 License: GPLv2 or later
 
 An AI receptionist on your website that answers questions and books appointments 24/7 — the same AI as on your WhatsApp, Instagram and Messenger.
