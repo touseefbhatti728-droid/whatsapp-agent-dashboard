@@ -17,7 +17,7 @@ const STAGES = [
   ["lost", "Lost", "bg-red-50 text-red-600"],
 ];
 const stageStyle = Object.fromEntries(STAGES.map(([k, , c]) => [k, c]));
-const SOURCES = { whatsapp: "WhatsApp", website: "Website", facebook: "Facebook ad", instagram: "Instagram", google: "Google", webhook: "Zapier / form", manual: "Added by you" };
+const SOURCES = { whatsapp: "WhatsApp", website: "Website", facebook: "Facebook ad", instagram: "Instagram", messenger: "Messenger", google: "Google", webhook: "Zapier / form", manual: "Added by you" };
 const ago = (iso) => {
   if (!iso) return "—";
   const m = Math.round((Date.now() - new Date(iso).getTime()) / 60000);
@@ -76,7 +76,7 @@ function LeadRow({ lead, open, onToggle, onChanged }) {
   const [f, setF] = useState({ name: lead.name || "", interest: lead.interest || "", budget: lead.budget || "", timeline: lead.timeline || "", notes: lead.notes || "" });
   const [busy, setBusy] = useState(false);
   const digits = String(lead.phone || "").replace(/\D/g, "");
-  const isWeb = String(lead.phone || "").startsWith("web:");
+  const isWeb = /^(web|fb|ig):/.test(String(lead.phone || "")); // not a WhatsApp number
 
   async function setStage(stage) {
     const r = await updateLead(lead.id, { stage });
