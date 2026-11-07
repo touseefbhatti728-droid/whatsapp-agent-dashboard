@@ -127,6 +127,9 @@ export default async function AppLayout({ children }) {
         <NavItem href="/calendar" label="Calendar" icon={IcCalendar} />
         <NavItem href="/waitlist" label="Waitlist" icon={IcList} />
         <NavItem href="/leads" label="Leads" icon={IcUsers} />
+        <NavItem href="/quotes" label="Quotes & invoices" icon={IcCard} />
+        <NavItem href="/memberships" label="Memberships" icon={IcUser} />
+        <NavItem href="/ask" label="Ask AI" icon={IcSpark} />
         <NavItem href="/clients" label="Clients" icon={IcUsers} />
         {hasChat
           ? <NavItem href="/conversations" label="Conversations" icon={IcChat} />
@@ -134,6 +137,7 @@ export default async function AppLayout({ children }) {
       </Group>
       <Group title="Grow">
         <NavItem href="/website" label="Website & booking" icon={IcGlobe} />
+        <NavItem href="/followups" label="Payments & follow-ups" icon={IcBell} />
         <NavItem href="/marketing" label="Marketing" icon={IcMega} />
         <NavItem href="/insights" label="Insights" icon={IcChart} />
         {hasWebhooks

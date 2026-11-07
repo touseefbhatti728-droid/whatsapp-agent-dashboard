@@ -80,6 +80,13 @@ export default function BookingPage({ businessId }) {
           <h2 className="mt-4 text-lg font-semibold text-text">You're booked!</h2>
           <p className="mt-1 text-sm text-muted">{[service, `${dayName(date)} ${dayNum(date)}`, nice(time), done.staff && `with ${done.staff}`].filter(Boolean).join(" · ")}</p>
           {done.ref && <p className="mt-3 text-sm text-text">Your reference: <b>{done.ref}</b></p>}
+          {done.extra && (
+            <p className="mt-4 whitespace-pre-wrap rounded-xl bg-canvas p-3 text-left text-sm text-text">
+              {done.extra.split(/(https:\/\/\S+)/).map((part, i) => /^https:\/\//.test(part)
+                ? <a key={i} href={part} target="_blank" rel="noreferrer" className="font-semibold text-brand underline">{part}</a>
+                : part)}
+            </p>
+          )}
           {info.whatsapp && (
             <a href={`https://wa.me/${info.whatsapp}?text=${encodeURIComponent(`Hi! I booked ${done.ref || "an appointment"} online.`)}`}
               className="btn-brand mt-6 inline-flex px-5 py-2.5 text-sm">Message us on WhatsApp</a>
