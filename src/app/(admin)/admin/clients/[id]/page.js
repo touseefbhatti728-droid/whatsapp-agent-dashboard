@@ -7,6 +7,7 @@ import { manageBusiness } from "@/lib/manage-actions";
 import { fixWhatsappNumber } from "../../actions";
 import DeleteCustomerButton from "@/components/DeleteCustomerButton";
 import AdminControls from "@/components/AdminControls";
+import WhatsAppCallsCard from "@/components/WhatsAppCallsCard";
 import { phoneDigits, formatPhone, channelOf, CHANNELS, senderOf } from "@/lib/phone";
 
 function when(ts) {
@@ -105,6 +106,8 @@ export default async function ClientDetail({ params }) {
       </section>
 
       {/* Control room: every setting, editable (tokens never leave the server) */}
+      <WhatsAppCallsCard id={b.id} connected={!!(b.meta_phone_number_id && b.meta_access_token)} voicePlan={b.voice_plan || null} />
+
       <AdminControls biz={Object.fromEntries(Object.entries(b).filter(([k]) => !/token|secret|key$/i.test(k)))} />
 
       <div className="grid gap-4 lg:grid-cols-2">
