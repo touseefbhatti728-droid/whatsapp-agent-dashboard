@@ -122,6 +122,9 @@ const EDITABLE = {
   deposit_required: bool, deposit_amount: str(60), currency: str(8), payment_link: url, payment_instructions: str(2000),
   google_review_url: url, calendar_id: str(200), webhook_url: url, notify_template: str(120), notify_template_lang: str(10),
   status: oneOf("active", "suspended"),
+  // Voice minutes the admin can grant (e.g. for a test or a deal)
+  voice_plan: (v) => { const s = String(v ?? "").trim(); if (!s) return null; if (!["voice_plan_120", "voice_plan_250", "voice_plan_500"].includes(s)) throw new Error("Voice plan must be voice_plan_120, voice_plan_250 or voice_plan_500 (or empty)"); return s; },
+  voice_minutes_included: int(0, 100000), voice_minutes_used: int(0, 100000), voice_addon_minutes: int(0, 100000),
 };
 
 export async function adminUpdateBusiness({ id, patch }) {
