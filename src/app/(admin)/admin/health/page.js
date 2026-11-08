@@ -22,6 +22,15 @@ export default async function HealthPage() {
     backend = { ok: r.ok, ms: Date.now() - t0, note: `HTTP ${r.status}` };
   } catch (e) { backend = { ok: false, ms: Date.now() - t0, note: e.name === "TimeoutError" ? "No answer in 6 s" : e.message }; }
 
+  // Is the Vapi key real? Ask Vapi (read-only).
+  let vapi = { ok: false, note: "Missing" };
+  if (process.env.VAPI_API_KEY) {
+    try {
+      const r = await fetch("https://api.vapi.ai/assistant?limit=1", { headers: { Authorization: `Bearer ${process.env.VAPI_API_KEY}` }, cache: "no-store", signal: AbortSignal.timeout(6000) });
+      vapi = r.ok ? { ok: true, note: "Key works" } : { ok: false, note: r.status === 401 ? "Key rejected (use the PRIVATE key)" : `Vapi answered ${r.status}` };
+    } catch (e) { vapi = { ok: false, note: "Couldn't reach Vapi" }; }
+  }
+
   const hourAgo = new Date(Date.now() - 3600e3).toISOString();
   const dayAgo = new Date(Date.now() - 864e5).toISOString();
   const last = (q) => q.order("created_at", { ascending: false }).limit(1).maybeSingle();
@@ -46,7 +55,7 @@ export default async function HealthPage() {
     ["Stripe prices (Starter / Pro / Business)", env("STRIPE_PRICE_STARTER") && env("STRIPE_PRICE_PRO") && env("STRIPE_PRICE_BUSINESS"), "The three paid plans"],
     ["Meta app (WhatsApp sign-up)", env("NEXT_PUBLIC_FB_APP_ID") && env("FB_APP_SECRET"), "Customers connecting WhatsApp"],
     ["Meta login for Pages (Messenger / Instagram)", env("NEXT_PUBLIC_FB_PAGES_CONFIG_ID"), "Customers connecting Facebook & Instagram"],
-    ["Vapi (phone receptionist)", env("VAPI_API_KEY"), "Phone numbers for paid customers"],
+    ["Vapi (phone receptionist)", vapi.ok, `Phone numbers for paid customers — ${vapi.note}`],
     ["Push notifications (VAPID)", env("NEXT_PUBLIC_VAPID_PUBLIC_KEY") && env("VAPID_PRIVATE_KEY"), "Owner alerts on their phone"],
     ["Claude API (dashboard AI)", env("ANTHROPIC_API_KEY"), "Ask AI and the admin assistant"],
   ];
