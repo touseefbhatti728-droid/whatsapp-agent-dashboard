@@ -19,7 +19,7 @@ async function ctx() {
 }
 
 async function vapi(path, method, body) {
-  const key = process.env.VAPI_API_KEY;
+  const key = (process.env.VAPI_PRIVATE_KEY || process.env.VAPI_API_KEY);
   if (!key) throw new Error("The phone receptionist isn't set up on the server yet (VAPI_API_KEY).");
   const r = await fetch(`${VAPI}${path}`, { method, headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json" }, body: body ? JSON.stringify(body) : undefined });
   const j = await r.json().catch(() => ({}));

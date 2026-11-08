@@ -71,8 +71,8 @@ export async function deleteCustomer({ id, confirmName }) {
     }
   }
   // 2) Phone line (Vapi) — best effort.
-  if (process.env.VAPI_API_KEY && (b.vapi_phone_number_id || b.vapi_assistant_id)) {
-    const h = { Authorization: `Bearer ${process.env.VAPI_API_KEY}` };
+  if ((process.env.VAPI_PRIVATE_KEY || process.env.VAPI_API_KEY) && (b.vapi_phone_number_id || b.vapi_assistant_id)) {
+    const h = { Authorization: `Bearer ${(process.env.VAPI_PRIVATE_KEY || process.env.VAPI_API_KEY)}` };
     if (b.vapi_phone_number_id) await fetch(`https://api.vapi.ai/phone-number/${b.vapi_phone_number_id}`, { method: "DELETE", headers: h }).catch(() => {});
     if (b.vapi_assistant_id) await fetch(`https://api.vapi.ai/assistant/${b.vapi_assistant_id}`, { method: "DELETE", headers: h }).catch(() => {});
   }
@@ -165,9 +165,9 @@ export async function adminDisconnect({ id, what }) {
   const { adminDb } = await import("@/lib/admin-db");
   const db = adminDb();
   if (!db) return { ok: false, error: "Server not configured." };
-  if (what === "phone" && process.env.VAPI_API_KEY) {
+  if (what === "phone" && (process.env.VAPI_PRIVATE_KEY || process.env.VAPI_API_KEY)) {
     const { data: b } = await db.from("businesses").select("vapi_assistant_id, vapi_phone_number_id").eq("id", id).maybeSingle();
-    const h = { Authorization: `Bearer ${process.env.VAPI_API_KEY}` };
+    const h = { Authorization: `Bearer ${(process.env.VAPI_PRIVATE_KEY || process.env.VAPI_API_KEY)}` };
     if (b?.vapi_phone_number_id) await fetch(`https://api.vapi.ai/phone-number/${b.vapi_phone_number_id}`, { method: "DELETE", headers: h }).catch(() => {});
     if (b?.vapi_assistant_id) await fetch(`https://api.vapi.ai/assistant/${b.vapi_assistant_id}`, { method: "DELETE", headers: h }).catch(() => {});
   }
