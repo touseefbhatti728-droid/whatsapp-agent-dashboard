@@ -164,7 +164,9 @@ body {
   background: linear-gradient(180deg, #3b0f8c 0%, #4c1d95 45%, #2e1065 100%);
   color: rgb(var(--c-text));
 }
-.admin-sidebar .navlink { color: rgb(var(--c-body)); }
+.admin-sidebar .navlink:not([aria-current="page"]) { color: rgb(var(--c-body)); }
+.admin-sidebar .navlink[aria-current="page"] { color: #4c1d95; background: #fff; box-shadow: 0 6px 18px -8px rgb(0 0 0 / 0.5); }
+.admin-sidebar .navlink[aria-current="page"] svg { color: #7c3aed; }
 .admin-header {
   background: linear-gradient(90deg, rgb(var(--brand-rgb) / 0.08), rgb(255 255 255 / 0.85) 40%);
 }
