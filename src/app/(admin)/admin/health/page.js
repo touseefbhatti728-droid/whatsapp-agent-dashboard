@@ -71,7 +71,7 @@ export default async function HealthPage() {
 
       <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
         <Tile ok={backend.ok} label="AI server (Railway)" value={backend.ok ? `Up · ${backend.ms} ms` : "Down"} sub={backend.note} />
-        <Tile ok={(msgsHour || 0) > 0} warn label="Messages in the last hour" value={msgsHour || 0} sub={`Last customer message ${ago(lastMsg.data?.created_at)}`} />
+        <Tile ok label="Messages in the last hour" value={msgsHour || 0} sub={`Last customer message ${ago(lastMsg.data?.created_at)}`} />
         <Tile ok={aiRate === null || aiRate >= 60} label="AI replies (24 h)" value={aiRate === null ? "—" : `${aiRate}%`} sub={`${aiDay || 0} replies to ${msgsDay || 0} customer messages`} />
         <Tile ok={!pastDue} label="Failed payments" value={pastDue || 0} sub={`${paused || 0} chats with the AI paused`} />
       </section>
