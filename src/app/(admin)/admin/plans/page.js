@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import VoiceStripeSetup from "@/components/VoiceStripeSetup";
 
 export default async function PlansPage() {
   const supabase = await createClient();
@@ -8,7 +9,9 @@ export default async function PlansPage() {
   if (profile?.is_admin !== true) redirect("/dashboard");
 
   const { data: plans } = await supabase.from("plans").select("*").order("sort");
-  const { data: bs } = await supabase.from("businesses").select("plan");
+  const { data: bs } = await supabase.from("businesses").select("*");
+  const voiceCounts = {};
+  (bs || []).forEach((b) => { if (b.voice_plan) voiceCounts[b.voice_plan] = (voiceCounts[b.voice_plan] || 0) + 1; });
   const countOn = (name) => (bs || []).filter((b) => b.plan === name).length;
 
   return (
@@ -31,6 +34,7 @@ export default async function PlansPage() {
           </div>
         ))}
       </div>
+      <VoiceStripeSetup counts={voiceCounts} />
     </div>
   );
 }

@@ -197,3 +197,16 @@ export async function adminPauseAllChats({ id, minutes }) {
   revalidatePath(`/admin/clients/${id}`);
   return { ok: true };
 }
+
+// Creates (or finds) every voice plan and add-on price in Stripe. Safe to press again.
+export async function adminSetupVoiceStripe() {
+  const user = await getSessionUser();
+  if (!user || !(await getIsAdmin(user.id))) return { ok: false, error: "Not allowed" };
+  if (!process.env.STRIPE_SECRET_KEY) return { ok: false, error: "Stripe secret key is missing." };
+  try {
+    const Stripe = (await import("stripe")).default;
+    const { ensureAllVoicePrices } = await import("@/lib/stripe-voice");
+    const prices = await ensureAllVoicePrices(new Stripe(process.env.STRIPE_SECRET_KEY));
+    return { ok: true, prices };
+  } catch (e) { return { ok: false, error: e.message }; }
+}

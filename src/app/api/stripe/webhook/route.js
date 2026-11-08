@@ -25,6 +25,33 @@ function planByPrice() {
   return m;
 }
 
+// The main plan item (a subscription can also carry a voice item).
+function mainPriceId(sub) {
+  const map = planByPrice();
+  const items = (sub.items && sub.items.data) || [];
+  const it = items.find((i) => i.price && map[i.price.id]) || items.find((i) => !String((i.price && i.price.lookup_key) || "").startsWith("voice_")) || items[0];
+  return it && it.price && it.price.id;
+}
+const VOICE_MINUTES = { voice_plan_120: 120, voice_plan_250: 250, voice_plan_600: 600 };
+
+// Keep the voice plan in step with the subscription, and start a fresh minute count each billing month.
+async function syncVoice(admin, businessId, sub, status) {
+  const items = (sub.items && sub.items.data) || [];
+  const item = items.find((i) => String((i.price && i.price.lookup_key) || "").startsWith("voice_plan_"));
+  const key = item && status !== "cancelled" ? item.price.lookup_key : null;
+  const { data: cur, error: e0 } = await admin.from("businesses").select("voice_plan, voice_period_start").eq("id", businessId).maybeSingle();
+  if (e0) return; // voice columns not added yet
+  const fields = { voice_plan: key, voice_minutes_included: key ? (VOICE_MINUTES[key] || 0) : 0 };
+  const startTs = (item && item.current_period_start) || sub.current_period_start;
+  if (key && startTs) {
+    const start = new Date(startTs * 1000);
+    const prev = cur && cur.voice_period_start ? new Date(cur.voice_period_start) : null;
+    if (!prev || start - prev > 3600000) { fields.voice_period_start = start.toISOString(); fields.voice_minutes_used = 0; }
+  }
+  const { error } = await admin.from("businesses").update(fields).eq("id", businessId);
+  console.log("STRIPE WEBHOOK voice ->", businessId, JSON.stringify(fields), error ? error.message : "OK");
+}
+
 const cap = (s) => (s ? String(s).charAt(0).toUpperCase() + String(s).slice(1) : "");
 const fmtDay = (iso) => (iso ? new Date(iso).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" }) : null);
 
@@ -69,7 +96,19 @@ export async function POST(req) {
   );
 
   try {
-    if (event.type === "checkout.session.completed") {
+    if (event.type === "checkout.session.completed" && event.data.object.metadata && event.data.object.metadata.kind === "voice_addon") {
+      const s = event.data.object;
+      const businessId = s.client_reference_id || s.metadata.business_id;
+      const minutes = Number(s.metadata.minutes) || 0;
+      if (businessId && minutes > 0 && s.payment_status === "paid") {
+        const { data: cur } = await admin.from("businesses").select("voice_addon_minutes, stripe_customer_id").eq("id", businessId).maybeSingle();
+        const fields = { voice_addon_minutes: (Number(cur && cur.voice_addon_minutes) || 0) + minutes };
+        if (!(cur && cur.stripe_customer_id) && s.customer) fields.stripe_customer_id = s.customer;
+        const { error } = await admin.from("businesses").update(fields).eq("id", businessId);
+        console.log("STRIPE WEBHOOK voice add-on ->", businessId, minutes, error ? error.message : "OK");
+        if (!error) await alertOwner(businessId, { title: `${minutes} extra call minutes added`, body: "Your phone receptionist can keep answering.", tag: "billing-voice" });
+      }
+    } else if (event.type === "checkout.session.completed") {
       const s = event.data.object;
       const businessId = s.client_reference_id || (s.metadata && s.metadata.business_id);
       let plan = s.metadata && s.metadata.plan;
@@ -82,8 +121,9 @@ export async function POST(req) {
         status = mapStatus(sub.status);
         renews = periodEnd(sub);
         customerId = sub.customer || customerId;
-        const priceId = sub.items && sub.items.data && sub.items.data[0] && sub.items.data[0].price && sub.items.data[0].price.id;
+        const priceId = mainPriceId(sub);
         if (!plan && priceId) plan = planByPrice()[priceId];
+        if (businessId) await syncVoice(admin, businessId, sub, status);
       }
 
       if (businessId) {
@@ -104,7 +144,7 @@ export async function POST(req) {
     } else if (event.type.indexOf("customer.subscription.") === 0) {
       const sub = event.data.object;
       const businessId = sub.metadata && sub.metadata.business_id;
-      const priceId = sub.items && sub.items.data && sub.items.data[0] && sub.items.data[0].price && sub.items.data[0].price.id;
+      const priceId = mainPriceId(sub);
       const plan = canonical(planByPrice()[priceId] || (sub.metadata && sub.metadata.plan));
       const status = mapStatus(sub.status);
       const renews = periodEnd(sub);
@@ -115,6 +155,7 @@ export async function POST(req) {
         if (renews) fields.renews_at = renews;
         const { error } = await admin.from("businesses").update(fields).eq("id", businessId);
         console.log("STRIPE WEBHOOK sub ->", businessId, JSON.stringify(fields), error ? error.message : "OK");
+        await syncVoice(admin, businessId, sub, status);
 
         // Alert only on real changes (Stripe sends many small updates).
         const prev = (event.data.previous_attributes || {});

@@ -35,6 +35,8 @@ export async function setupVoiceLine({ areaCode } = {}) {
   if (!("voice_token" in biz)) return { ok: false, error: "The phone receptionist turns on after a quick database update by your provider." };
   // Calls cost per minute, so the phone line is for paid plans only (not free or trial).
   if (biz.sub_status !== "active") return { ok: false, error: "The phone receptionist is available on paid plans. Start or upgrade your plan in Billing first." };
+  // Call minutes come from a voice plan (added to the subscription in Billing).
+  if ("voice_plan" in biz && !biz.voice_plan) return { ok: false, error: "Choose a voice plan in Billing first (from $35 for 120 minutes a month)." };
   try {
     const token = biz.voice_token || crypto.randomBytes(24).toString("hex");
     const base = `${BACKEND_URL}/voice/vapi/${biz.id}/${token}`;

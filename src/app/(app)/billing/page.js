@@ -3,6 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import StripeUpgradeButton, { ManageBillingButton } from "@/components/StripeUpgradeButton";
 import BillingToast from "@/components/BillingToast";
 import { Suspense } from "react";
+import VoicePlanPicker from "@/components/VoicePlanPicker";
 
 // Displayed prices (USD) — charged amount comes from Stripe.
 const USD_PRICE = { starter: 29, pro: 59, business: 99 };
@@ -35,7 +36,7 @@ export default async function BillingPage() {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect("/login");
 
-  const { data: businesses } = await supabase.from("businesses").select("id, name, plan, sub_status, renews_at, stripe_customer_id").eq("owner_id", user.id).order("created_at", { ascending: true });
+  const { data: businesses } = await supabase.from("businesses").select("*").eq("owner_id", user.id).order("created_at", { ascending: true });
   const biz = businesses?.[0];
   const { data: plans } = await supabase.from("plans").select("name, price, interval, features, monthly_booking_limit, chat_history, sort").order("sort");
 
@@ -108,6 +109,15 @@ export default async function BillingPage() {
               </div>
             )}
           </div>
+          <VoicePlanPicker
+            current={biz.voice_plan || null}
+            used={Number(biz.voice_minutes_used) || 0}
+            included={Number(biz.voice_minutes_included) || 0}
+            addon={Number(biz.voice_addon_minutes) || 0}
+            hasSub={hasSub}
+            active={biz.sub_status === "active"}
+            ready={"voice_plan" in biz}
+          />
         </div>
       )}
 
@@ -219,7 +229,7 @@ function Compare({ plans }) {
     ["Bookings per month", (c) => (c.key === "free" ? "Booking page only" : c.limit == null ? "Unlimited" : c.limit.toLocaleString())],
     ["Full conversation history", (c) => (c.key === "free" ? no : c.history ? yes : no)],
     ["CRM / Zapier webhook", (c) => (c.key === "business" ? yes : no)],
-    ["AI phone receptionist", (c) => (c.key === "free" ? no : "Add-on")],
+    ["AI phone receptionist", (c) => (c.key === "free" ? no : "From $35/mo")],
   ];
   return (
     <div className="card mt-6 overflow-hidden">
