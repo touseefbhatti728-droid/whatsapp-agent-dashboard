@@ -35,6 +35,13 @@ const TABS = [
     ],
   },
   {
+    key: "voice", label: "Voice minutes", fields: [
+      ["voice_plan", "Voice plan (voice_plan_120 / voice_plan_250 / voice_plan_500, or empty)"],
+      ["voice_minutes_included", "Plan minutes per month", "num"], ["voice_minutes_used", "Used this month", "num"],
+      ["voice_addon_minutes", "Extra minutes (free grant / add-ons)", "num"],
+    ],
+  },
+  {
     key: "integrations", label: "Integrations", fields: [
       ["calendar_id", "Google Calendar ID"], ["webhook_url", "CRM / Zapier webhook"],
     ],
