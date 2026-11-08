@@ -210,3 +210,67 @@ export async function adminSetupVoiceStripe() {
     return { ok: true, prices };
   } catch (e) { return { ok: false, error: e.message }; }
 }
+
+// ---- WhatsApp calls (AI answers WhatsApp voice calls) ----
+const GRAPH = `https://graph.facebook.com/${process.env.FB_GRAPH_VERSION || "v22.0"}`;
+async function bizWithToken(id) {
+  const { adminDb } = await import("@/lib/admin-db");
+  const db = adminDb();
+  if (!db) throw new Error("Server not configured.");
+  const { data: b } = await db.from("businesses").select("id, meta_phone_number_id, meta_access_token").eq("id", id).maybeSingle();
+  if (!b?.meta_phone_number_id || !b?.meta_access_token) throw new Error("This customer has no WhatsApp number connected.");
+  return b;
+}
+async function graph(path, token, init = {}) {
+  const r = await fetch(`${GRAPH}/${path}`, { ...init, headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json", ...(init.headers || {}) }, cache: "no-store" });
+  const j = await r.json().catch(() => ({}));
+  if (!r.ok) throw new Error(j?.error?.error_user_msg || j?.error?.message || `Meta answered ${r.status}`);
+  return j;
+}
+
+// Status + what Meta requires (messaging limit, Cloud API number).
+export async function adminWhatsappCallingInfo({ id }) {
+  const user = await getSessionUser();
+  if (!user || !(await getIsAdmin(user.id))) return { ok: false, error: "Not allowed" };
+  try {
+    const b = await bizWithToken(id);
+    const [settings, phone] = await Promise.all([
+      graph(`${b.meta_phone_number_id}/settings`, b.meta_access_token).catch((e) => ({ error: e.message })),
+      graph(`${b.meta_phone_number_id}?fields=display_phone_number,verified_name,quality_rating,messaging_limit_tier,platform_type,code_verification_status`, b.meta_access_token).catch((e) => ({ error: e.message })),
+    ]);
+    return { ok: true, calling: settings?.calling || null, settingsError: settings?.error || null, phone };
+  } catch (e) { return { ok: false, error: e.message }; }
+}
+
+export async function adminWhatsappCalling({ id, on }) {
+  const user = await getSessionUser();
+  if (!user || !(await getIsAdmin(user.id))) return { ok: false, error: "Not allowed" };
+  try {
+    const b = await bizWithToken(id);
+    await graph(`${b.meta_phone_number_id}/settings`, b.meta_access_token, {
+      method: "POST",
+      body: JSON.stringify({ calling: { status: on ? "ENABLED" : "DISABLED", call_icon_visibility: on ? "DEFAULT" : "DISABLE_ALL" } }),
+    });
+    return { ok: true };
+  } catch (e) { return { ok: false, error: e.message }; }
+}
+
+// Connect a WhatsApp number by hand (e.g. Meta's test number): phone number ID + access token.
+export async function adminConnectNumber({ id, phoneNumberId, token }) {
+  const user = await getSessionUser();
+  if (!user || !(await getIsAdmin(user.id))) return { ok: false, error: "Not allowed" };
+  const pnid = String(phoneNumberId || "").trim();
+  const tok = String(token || "").trim();
+  if (!/^\d{6,25}$/.test(pnid)) return { ok: false, error: "Phone number ID is a long number (WhatsApp → API Setup)." };
+  if (tok.length < 50) return { ok: false, error: "Paste the full access token." };
+  try {
+    const p = await graph(`${pnid}?fields=display_phone_number,verified_name`, tok);
+    const { adminDb } = await import("@/lib/admin-db");
+    const { error } = await adminDb().from("businesses").update({
+      meta_phone_number_id: pnid, meta_access_token: tok, whatsapp_number: String(p.display_phone_number || "").replace(/\D/g, "") || null,
+    }).eq("id", id);
+    if (error) return { ok: false, error: error.message };
+    revalidatePath(`/admin/clients/${id}`);
+    return { ok: true, number: p.display_phone_number, name: p.verified_name };
+  } catch (e) { return { ok: false, error: e.message }; }
+}
