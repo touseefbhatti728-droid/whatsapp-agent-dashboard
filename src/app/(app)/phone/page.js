@@ -25,7 +25,7 @@ export default async function PhonePage() {
       ) : "voice_plan" in biz && !biz.voice_plan && !biz.vapi_assistant_id ? (
         <div className="card px-5 py-10 text-center">
           <p className="text-sm font-semibold text-text">Pick a voice plan</p>
-          <p className="mx-auto mt-1 max-w-md text-sm text-muted">Choose how many call minutes you need each month — 120 minutes for $35, 250 for $70 or 600 for $120. It's added to your current plan, one bill.</p>
+          <p className="mx-auto mt-1 max-w-md text-sm text-muted">Choose how many call minutes you need each month — 120 minutes for $35, 250 for $70 or 500 for $120. It's added to your current plan, one bill.</p>
           <a href="/billing" className="btn-brand mt-4 inline-block">Choose a voice plan</a>
         </div>
       ) : !("voice_token" in biz) ? (
