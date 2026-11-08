@@ -44,7 +44,7 @@ export default async function PhonePage() {
             <a href="/billing" className="btn-ghost text-sm">More minutes</a>
           </div>
         )}
-        <VoiceLine number={biz.voice_number || ""} assistantId={biz.vapi_assistant_id || ""} serverReady={!!process.env.VAPI_API_KEY} />
+        <VoiceLine number={biz.voice_number || ""} assistantId={biz.vapi_assistant_id || ""} serverReady={!!(process.env.VAPI_PRIVATE_KEY || process.env.VAPI_API_KEY)} />
         </>
       )}
     </div>

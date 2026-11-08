@@ -24,9 +24,9 @@ export default async function HealthPage() {
 
   // Is the Vapi key real? Ask Vapi (read-only).
   let vapi = { ok: false, note: "Missing" };
-  if (process.env.VAPI_API_KEY) {
+  if ((process.env.VAPI_PRIVATE_KEY || process.env.VAPI_API_KEY)) {
     try {
-      const r = await fetch("https://api.vapi.ai/assistant?limit=1", { headers: { Authorization: `Bearer ${process.env.VAPI_API_KEY}` }, cache: "no-store", signal: AbortSignal.timeout(6000) });
+      const r = await fetch("https://api.vapi.ai/assistant?limit=1", { headers: { Authorization: `Bearer ${(process.env.VAPI_PRIVATE_KEY || process.env.VAPI_API_KEY)}` }, cache: "no-store", signal: AbortSignal.timeout(6000) });
       vapi = r.ok ? { ok: true, note: "Key works" } : { ok: false, note: r.status === 401 ? "Key rejected (use the PRIVATE key)" : `Vapi answered ${r.status}` };
     } catch (e) { vapi = { ok: false, note: "Couldn't reach Vapi" }; }
   }
