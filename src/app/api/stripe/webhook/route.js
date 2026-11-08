@@ -32,7 +32,7 @@ function mainPriceId(sub) {
   const it = items.find((i) => i.price && map[i.price.id]) || items.find((i) => !String((i.price && i.price.lookup_key) || "").startsWith("voice_")) || items[0];
   return it && it.price && it.price.id;
 }
-const VOICE_MINUTES = { voice_plan_120: 120, voice_plan_250: 250, voice_plan_600: 600 };
+const VOICE_MINUTES = { voice_plan_120: 120, voice_plan_250: 250, voice_plan_500: 500, voice_plan_600: 600 }; // 600 = old plan, kept for anyone already on it
 
 // Keep the voice plan in step with the subscription, and start a fresh minute count each billing month.
 async function syncVoice(admin, businessId, sub, status) {

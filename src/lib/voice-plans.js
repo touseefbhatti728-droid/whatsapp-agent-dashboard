@@ -3,7 +3,7 @@
 export const VOICE_PLANS = [
   { key: "voice_plan_120", name: "Voice 120", minutes: 120, usd: 35, note: "For quiet lines" },
   { key: "voice_plan_250", name: "Voice 250", minutes: 250, usd: 70, note: "Most businesses", popular: true },
-  { key: "voice_plan_600", name: "Voice 600", minutes: 600, usd: 120, note: "Busy front desks" },
+  { key: "voice_plan_500", name: "Voice 500", minutes: 500, usd: 120, note: "Busy front desks" },
 ];
 export const VOICE_ADDONS = [
   { key: "voice_addon_60", name: "+60 minutes", minutes: 60, usd: 20 },
